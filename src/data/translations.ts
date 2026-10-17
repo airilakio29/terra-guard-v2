@@ -1,6 +1,6 @@
 export const TRANSLATIONS = {
   en: {
-    appTitle: 'AmanAlert',
+    appTitle: 'Terra Guard V2',
     appSubtitle: 'Citizen Disaster Companion',
     navStatus: 'Status',
     navMap: 'Live Map',
@@ -61,7 +61,7 @@ export const TRANSLATIONS = {
     emergencyDisclaimer: 'Emergency companion prototype. For extreme life threats, always dial 999 immediately.'
   },
   bm: {
-    appTitle: 'AmanAlert',
+    appTitle: 'Terra Guard V2',
     appSubtitle: 'Teman Keselamatan Bencana',
     navStatus: 'Status',
     navMap: 'Peta Pantas',

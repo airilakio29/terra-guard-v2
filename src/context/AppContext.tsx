@@ -108,8 +108,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'm-init',
       sender: 'assistant',
       text: language === 'bm' 
-        ? 'Selamat datang ke Bantuan Keselamatan AmanAlert. Pilih topik atau tanya sebarang panduan kecemasan.'
-        : 'Welcome to AmanAlert Safety Assistant. Select a topic below or ask any emergency question.',
+        ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan.'
+        : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any emergency question.',
       timestamp: 'Just now',
       suggestions: language === 'bm'
         ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
@@ -126,8 +126,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             id: 'm-init',
             sender: 'assistant',
             text: language === 'bm' 
-              ? 'Selamat datang ke Bantuan Keselamatan AmanAlert. Pilih topik atau tanya sebarang panduan kecemasan.'
-              : 'Welcome to AmanAlert Safety Assistant. Select a topic below or ask any emergency question.',
+              ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan.'
+              : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any emergency question.',
             timestamp: 'Just now',
             suggestions: language === 'bm'
               ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
