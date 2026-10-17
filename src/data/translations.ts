@@ -1,0 +1,215 @@
+export const TRANSLATIONS = {
+  en: {
+    appTitle: 'AmanAlert',
+    appSubtitle: 'Citizen Disaster Companion',
+    navStatus: 'Status',
+    navMap: 'Live Map',
+    navAssist: 'Safety AI',
+    navSos: 'SOS & Kit',
+    updatedAgo: 'Updated 2m ago',
+    pullToRefresh: 'Tap to refresh',
+    refreshing: 'Checking official feeds...',
+    demoScenario: 'Demo Scenario',
+    scenarioAdvisory: 'Subang (Advisory)',
+    scenarioDanger: 'Kelantan (Danger)',
+    scenarioSafe: 'Penang (Safe)',
+    soundOn: 'Audio Chime On',
+    soundOff: 'Audio Chime Muted',
+    allClearTitle: 'All Clear in Your Area',
+    openSheltersNearby: 'Open Shelters Nearby',
+    metersAway: 'm away',
+    kmAway: 'km away',
+    walkMin: 'min walk',
+    capacity: 'Capacity',
+    spotsLeft: 'spots available',
+    navigateBtn: 'Get Walking Directions',
+    callShelterBtn: 'Call Shelter Desk',
+    viewAllOnMap: 'View All on Live Map',
+    hazardsNearbyTitle: 'Active Hazards Nearby',
+    waterDepth: 'Water depth',
+    affectedRoads: 'Affected roads',
+    quickQuestionsTitle: '1-Tap Safety Guidance',
+    chipPack: 'What to pack right now?',
+    chipDrive: 'Can I drive my car through water?',
+    chipPower: 'Should I switch off the main breaker?',
+    chipTrapped: 'What if water enters my house?',
+    sosDirectBanner: 'Emergency SOS Hotline',
+    sosSubtext: 'Direct dial to MERS 999 & Bomba rescue teams',
+    callNow: 'Call Now',
+    verifiedCivilDefence: 'Verified National Civil Defence Guidelines',
+    askInputPlaceholder: 'Type a question or select a prompt...',
+    send: 'Send',
+    readAloud: 'Read Aloud',
+    stopAudio: 'Stop Audio',
+    listening: 'Listening...',
+    mapFilterAll: 'All',
+    mapFilterHazards: 'Hazards',
+    mapFilterShelters: 'Shelters',
+    youAreHere: 'You are here',
+    openStatus: 'OPEN',
+    limitedStatus: 'LIMITED',
+    fullStatus: 'FULL',
+    offlineKitTitle: '72-Hour Evacuation Checklist',
+    offlineKitSubtitle: 'Essential items to grab in under 3 minutes. Saves automatically.',
+    itemsPacked: 'items packed',
+    hotlinesTitle: 'Verified Emergency Hotlines',
+    hotlinesSubtitle: 'Tap any number to direct call. Works even without mobile data.',
+    copyNumber: 'Copy Number',
+    copied: 'Copied!',
+    close: 'Close',
+    back: 'Back',
+    emergencyDisclaimer: 'Emergency companion prototype. For extreme life threats, always dial 999 immediately.'
+  },
+  bm: {
+    appTitle: 'AmanAlert',
+    appSubtitle: 'Teman Keselamatan Bencana',
+    navStatus: 'Status',
+    navMap: 'Peta Pantas',
+    navAssist: 'Bantuan AI',
+    navSos: 'SOS & Kit',
+    updatedAgo: 'Dikemas kini 2m lalu',
+    pullToRefresh: 'Kemas kini data',
+    refreshing: 'Menyemak laporan rasmi...',
+    demoScenario: 'Senario Demo',
+    scenarioAdvisory: 'Subang (Amaran)',
+    scenarioDanger: 'Kelantan (Bahaya)',
+    scenarioSafe: 'Penang (Selamat)',
+    soundOn: 'Bunyi Amaran Aktif',
+    soundOff: 'Bunyi Amaran Bisu',
+    allClearTitle: 'Kawasan Anda Selamat',
+    openSheltersNearby: 'Pusat Pemindahan Dibuka',
+    metersAway: 'm jarak',
+    kmAway: 'km jarak',
+    walkMin: 'min berjalan',
+    capacity: 'Kapasiti',
+    spotsLeft: 'tempat masih ada',
+    navigateBtn: 'Panduan Laluan Berjalan',
+    callShelterBtn: 'Hubungi Kaunter PPS',
+    viewAllOnMap: 'Lihat Semua di Peta',
+    hazardsNearbyTitle: 'Zon Bahaya Berdekatan',
+    waterDepth: 'Paras air',
+    affectedRoads: 'Laluan terjejas',
+    quickQuestionsTitle: 'Panduan Pantas 1-Sentuhan',
+    chipPack: 'Apa yang patut saya kemas sekarang?',
+    chipDrive: 'Bolehkah saya pandu kereta redah air?',
+    chipPower: 'Perlukah saya tutup suis utama elektrik?',
+    chipTrapped: 'Apa tindakan jika air masuk rumah?',
+    sosDirectBanner: 'Talian Kecemasan Terus SOS',
+    sosSubtext: 'Panggilan terus MERS 999 & unit bot Bomba',
+    callNow: 'Hubungi',
+    verifiedCivilDefence: 'Garis Panduan Sah Pertahanan Awam Kebangsaan',
+    askInputPlaceholder: 'Tanya soalan atau pilih panduan pantas...',
+    send: 'Hantar',
+    readAloud: 'Dengar Suara',
+    stopAudio: 'Henti Suara',
+    listening: 'Mendengar...',
+    mapFilterAll: 'Semua',
+    mapFilterHazards: 'Bahaya',
+    mapFilterShelters: 'Pusat Pemindahan',
+    youAreHere: 'Lokasi Anda',
+    openStatus: 'DIBUKA',
+    limitedStatus: 'TERHAD',
+    fullStatus: 'PENUH',
+    offlineKitTitle: 'Senarai Semak Kecemasan 72 Jam',
+    offlineKitSubtitle: 'Barang penting yang perlu dicapai bawah 3 minit. Disimpan secara automatik.',
+    itemsPacked: 'barang siap dikemas',
+    hotlinesTitle: 'Talian Kecemasan Rasmi',
+    hotlinesSubtitle: 'Tekan untuk buat panggilan. Berfungsi walaupun tiada kuota data internet.',
+    copyNumber: 'Salin Nombor',
+    copied: 'Disalin!',
+    close: 'Tutup',
+    back: 'Kembali',
+    emergencyDisclaimer: 'Prototaip teman kecemasan awam. Bagi ancaman nyawa kritikal, hubungi 999 serta-merta.'
+  }
+};
+
+export const AI_KNOWLEDGE_BASE: Record<string, { en: { title: string; steps: string[]; suggestions: string[] }; bm: { title: string; steps: string[]; suggestions: string[] } }> = {
+  pack: {
+    en: {
+      title: '3-Minute Fast Evacuation Packing Checklist:',
+      steps: [
+        '1. Identity & Documents: Put ICs, passports, and grants inside a ziplock bag immediately.',
+        '2. Medications & Baby Supplies: Grab 5 days of prescriptions, baby formula, and diapers.',
+        '3. Communications: Grab your phone, powerbank, and charging cable. Put in battery-saver mode.',
+        '4. Footwear: Put on closed sturdy shoes (never flip-flops or bare feet due to glass/sharp debris).'
+      ],
+      suggestions: ['Should I switch off the main breaker?', 'Can I drive my car through water?']
+    },
+    bm: {
+      title: 'Senarai Semak Pantas 3-Minit Sebelum Berpindah:',
+      steps: [
+        '1. Dokumen Pengenalan: Masukkan MyKad, pasport, dan geran ke dalam beg plastik berzip serta-merta.',
+        '2. Ubat Khas & Keperluan Bayi: Ambil bekalan ubat 5 hari, susu formula bayi, dan lampin.',
+        '3. Komunikasi: Bawa telefon, powerbank, dan kabel pengecas. Aktifkan mod jimat bateri.',
+        '4. Kasut Bertutup: Pakai kasut bertutup kukuh (jangan berkaki ayam atau selipar kerana serpihan tajam).'
+      ],
+      suggestions: ['Perlukah saya tutup suis utama elektrik?', 'Bolehkah saya pandu kereta redah air?']
+    }
+  },
+  drive: {
+    en: {
+      title: 'Do NOT Drive Through Standing Flood Water:',
+      steps: [
+        '1. Just 15 cm (6 inches) of water can stall an engine and cause irreparable mechanical damage.',
+        '2. 30 cm (12 inches) of moving water will float most passenger sedans and sweep you into drains.',
+        '3. If your car stalls in rising water, abandon the vehicle immediately and move to higher ground on foot.',
+        '4. Manhole covers and drain grates often dislodge during flash floods, leaving invisible deadly pits.'
+      ],
+      suggestions: ['What if water enters my house?', 'View Nearest Open Shelter']
+    },
+    bm: {
+      title: 'JANGAN Pandu Redah Air Banjir:',
+      steps: [
+        '1. Air setinggi 15 cm (6 inci) sahaja sudah mampu mematikan enjin dan merosakkan kotak gear.',
+        '2. Air setinggi 30 cm (1 kaki) yang berarus boleh menghanyutkan kereta sedan ke longkang besar.',
+        '3. Jika kereta mati dalam air yang sedang naik, tinggalkan kereta serta-merta dan panjat ke tempat tinggi.',
+        '4. Penutup longkang sering tercabut akibat tekanan air, mewujudkan lubang jerangkap maut yang tidak kelihatan.'
+      ],
+      suggestions: ['Apa tindakan jika air masuk rumah?', 'Lihat Pusat Pemindahan Terdekat']
+    }
+  },
+  power: {
+    en: {
+      title: 'Electrical Safety During Rising Water:',
+      steps: [
+        '1. Switch OFF the main electrical distribution board (MCB / fuse box) BEFORE water reaches floor outlets.',
+        '2. Never touch electrical switches or appliances if you are standing in water or if your hands are wet.',
+        '3. Unplug high-voltage appliances (fridge, washing machine, TVs) if it is safe to do so.',
+        '4. Treat all downed overhead cables and floodwater as electrically live. Stay at least 10 meters away.'
+      ],
+      suggestions: ['What to pack right now?', 'What if water enters my house?']
+    },
+    bm: {
+      title: 'Keselamatan Elektrik Semasa Air Naik:',
+      steps: [
+        '1. Tutup suis utama papan fius agihan (MCB) SEBELUM air mencecah soket elektrik dinding.',
+        '2. Jangan sekali-kali menyentuh suis atau peralatan jika anda berdiri dalam air atau tangan basah.',
+        '3. Cabut palam peralatan voltan tinggi (peti ais, mesin basuh, TV) jika selamat dilakukan.',
+        '4. Anggap semua kabel tiang elektrik yang jatuh dan air banjir berarus elektrik. Jauhi sekurang-kurangnya 10 meter.'
+      ],
+      suggestions: ['Apa yang patut saya kemas sekarang?', 'Apa tindakan jika air masuk rumah?']
+    }
+  },
+  trapped: {
+    en: {
+      title: 'If Water Enters Your House:',
+      steps: [
+        '1. Move family members, elderly, and pets to the 2nd floor or highest elevated dry surface.',
+        '2. Do NOT climb into a closed attic with no roof exit — you could become trapped if water reaches the ceiling.',
+        '3. Call MERS 999 or Bomba (994) and clearly state: your street name, number of occupants, and water height.',
+        '4. Signal rescuers by hanging a bright cloth out the window or using a flashlight / emergency whistle.'
+      ],
+      suggestions: ['Emergency SOS Hotline', 'What to pack right now?']
+    },
+    bm: {
+      title: 'Tindakan Jika Air Mula Masuk ke Dalam Rumah:',
+      steps: [
+        '1. Pindahkan ahli keluarga, warga emas, dan haiwan peliharaan ke tingkat 2 atau kawasan paling tinggi.',
+        '2. JANGAN naik ke siling tertutup tanpa laluan bumbung — anda boleh terperangkap jika air mencecah bumbung.',
+        '3. Hubungi MERS 999 atau Bomba (994) dan nyatakan: nama jalan tepat, bilangan mangsa, dan paras air terkini.',
+        '4. Beri isyarat kepada bot penyelamat dengan melambai kain cerah dari tingkap atau tiup wisel kecemasan.'
+      ],
+      suggestions: ['Talian Kecemasan Terus SOS', 'Apa yang patut saya kemas sekarang?']
+    }
+  }
+};
