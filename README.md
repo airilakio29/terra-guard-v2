@@ -38,8 +38,8 @@
 ### Installation & Local Run
 ```bash
 # Clone the repository
-git clone https://github.com/airilakio29/amanalert.git
-cd amanalert
+git clone https://github.com/airilakio29/terra-guard-v2.git
+cd terra-guard-v2
 
 # Install dependencies
 npm install
