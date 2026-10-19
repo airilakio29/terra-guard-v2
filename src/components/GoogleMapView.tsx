@@ -1,0 +1,205 @@
+import React, { useEffect, useRef, useState } from 'react';
+import type { ScenarioData, ShelterInfo } from '../types';
+import { loadGoogleMaps, fetchWalkRoute } from '../services/googleMaps';
+import { toLatLng, unitsToMeters } from '../data/geo';
+
+export interface RouteInfo {
+  meters: number;
+  seconds: number;
+}
+
+interface Props {
+  scenario: ScenarioData;
+  userGrid: { x: number; y: number };
+  selectedShelter: ShelterInfo;
+  filter: 'all' | 'hazards' | 'shelters';
+  language: 'en' | 'bm';
+  recenterSignal: number;
+  youAreHere: string;
+  onSelectShelter: (s: ShelterInfo) => void;
+  onRoute: (r: RouteInfo | null) => void;
+  onElevation: (shelterM: number | null, userM: number | null) => void;
+  onFail: (reason: string) => void;
+}
+
+type MapKind = 'roadmap' | 'terrain' | 'hybrid';
+
+const LABELS = {
+  en: { roadmap: 'Map', terrain: 'Terrain', hybrid: 'Satellite', traffic: 'Traffic' },
+  bm: { roadmap: 'Peta', terrain: 'Rupa Bumi', hybrid: 'Satelit', traffic: 'Trafik' }
+};
+
+const pill = (text: string, bg: string, fg: string, border = 'rgba(0,0,0,.15)') => {
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.cssText = `background:${bg};color:${fg};border:1px solid ${border};border-radius:999px;padding:3px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25);`;
+  return el;
+};
+
+export const GoogleMapView: React.FC<Props> = ({
+  scenario, userGrid, selectedShelter, filter, language, recenterSignal, youAreHere,
+  onSelectShelter, onRoute, onElevation, onFail
+}) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const trafficRef = useRef<google.maps.TrafficLayer | null>(null);
+  const [ready, setReady] = useState(false);
+  const [mapKind, setMapKind] = useState<MapKind>('roadmap');
+  const [traffic, setTraffic] = useState(false);
+
+  const userPos = toLatLng(scenario, userGrid.x, userGrid.y);
+  const center = { lat: scenario.lat, lng: scenario.lon };
+
+  // 1. Create the map once
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadGoogleMaps();
+        const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
+        await google.maps.importLibrary('marker');
+        await google.maps.importLibrary('geometry');
+        if (cancelled || !hostRef.current) return;
+        mapRef.current = new Map(hostRef.current, {
+          center,
+          zoom: 15,
+          mapId: 'DEMO_MAP_ID', // required for AdvancedMarkers; Google's built-in demo id
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+          clickableIcons: false
+        });
+        setReady(true);
+      } catch (e) {
+        onFail(e instanceof Error ? e.message : 'unknown');
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 2. Map type + traffic layer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    map.setMapTypeId(mapKind);
+    if (!trafficRef.current) trafficRef.current = new google.maps.TrafficLayer();
+    trafficRef.current.setMap(traffic ? map : null);
+  }, [ready, mapKind, traffic]);
+
+  // 3. Recenter when scenario changes or user taps recenter
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    mapRef.current.panTo(center);
+    mapRef.current.setZoom(15);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, scenario.id, recenterSignal]);
+
+  // 4. Hazards, shelters, user marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const cleanups: (() => void)[] = [];
+
+    if (filter === 'all' || filter === 'hazards') {
+      scenario.hazards.forEach(h => {
+        const c = toLatLng(scenario, h.coords.x, h.coords.y);
+        const color = h.severity === 'danger' ? '#DC2626' : '#F59E0B';
+        const circle = new google.maps.Circle({
+          map, center: c, radius: unitsToMeters(h.coords.radius),
+          strokeColor: color, strokeOpacity: 0.9, strokeWeight: 2,
+          fillColor: color, fillOpacity: 0.25
+        });
+        const label = new google.maps.marker.AdvancedMarkerElement({
+          map, position: c,
+          content: pill(`⚠️ ${h.waterDepthMeters ? `${h.waterDepthMeters} m` : 'Hazard'}`, '#FEF2F2', '#991B1B', color),
+          title: language === 'bm' ? h.titleBm : h.title
+        });
+        cleanups.push(() => { circle.setMap(null); label.map = null; });
+      });
+    }
+
+    if (filter === 'all' || filter === 'shelters') {
+      scenario.shelters.forEach(s => {
+        const sel = s.id === selectedShelter.id;
+        const m = new google.maps.marker.AdvancedMarkerElement({
+          map, position: toLatLng(scenario, s.coords.x, s.coords.y),
+          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? '#0284C7' : '#059669', '#fff', '#fff'),
+          title: s.name,
+          zIndex: sel ? 10 : 1
+        });
+        m.addListener('gmp-click', () => onSelectShelter(s));
+        cleanups.push(() => { m.map = null; });
+      });
+    }
+
+    const me = new google.maps.marker.AdvancedMarkerElement({
+      map, position: userPos, content: pill(`📍 ${youAreHere}`, '#0F172A', '#fff', '#38BDF8'), zIndex: 20
+    });
+    cleanups.push(() => { me.map = null; });
+
+    return () => cleanups.forEach(fn => fn());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, scenario, filter, selectedShelter.id, language, youAreHere]);
+
+  // 5. Real walking route + elevation to the selected shelter
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    let cancelled = false;
+    let line: google.maps.Polyline | null = null;
+    const dest = toLatLng(scenario, selectedShelter.coords.x, selectedShelter.coords.y);
+
+    fetchWalkRoute(userPos, dest)
+      .then(r => {
+        if (cancelled) return;
+        line = new google.maps.Polyline({
+          map, path: google.maps.geometry.encoding.decodePath(r.encodedPolyline),
+          strokeColor: '#0284C7', strokeWeight: 6, strokeOpacity: 0.9
+        });
+        onRoute({ meters: r.meters, seconds: r.seconds });
+      })
+      .catch(() => { if (!cancelled) onRoute(null); });
+
+    google.maps.importLibrary('elevation').then(lib => {
+      const { ElevationService } = lib as google.maps.ElevationLibrary;
+      return new ElevationService().getElevationForLocations({ locations: [dest, userPos] });
+    }).then(res => {
+      if (!cancelled) onElevation(res.results[0]?.elevation ?? null, res.results[1]?.elevation ?? null);
+    }).catch(() => { if (!cancelled) onElevation(null, null); });
+
+    return () => { cancelled = true; line?.setMap(null); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, scenario.id, selectedShelter.id]);
+
+  const L = LABELS[language];
+  const btn = (active: boolean): React.CSSProperties => ({
+    border: 'none', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+    background: active ? '#0284C7' : '#fff', color: active ? '#fff' : '#0F172A'
+  });
+
+  return (
+    <>
+      <div ref={hostRef} style={{ position: 'absolute', inset: 0 }} />
+      {ready && (
+        <div style={{
+          position: 'absolute', top: 10, left: 10, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }}>
+            {(['roadmap', 'terrain', 'hybrid'] as MapKind[]).map(k => (
+              <button key={k} style={btn(mapKind === k)} onClick={() => setMapKind(k)}>{L[k]}</button>
+            ))}
+          </div>
+          <div style={{ borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }}>
+            <button style={btn(traffic)} onClick={() => setTraffic(t => !t)}>🚦 {L.traffic}</button>
+          </div>
+        </div>
+      )}
+      {!ready && (
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#475569', fontSize: 13 }}>
+          {language === 'bm' ? 'Memuatkan Google Maps…' : 'Loading Google Maps…'}
+        </div>
+      )}
+    </>
+  );
+};

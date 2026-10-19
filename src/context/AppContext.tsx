@@ -1,7 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Language, RiskLevel, ShelterInfo, ScenarioData, ChatMessage } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { Language, RiskLevel, ShelterInfo, ScenarioData, ChatMessage, LiveWeather } from '../types';
 import { SCENARIOS } from '../data/scenarios';
-import { TRANSLATIONS, AI_KNOWLEDGE_BASE } from '../data/translations';
+import { TRANSLATIONS } from '../data/translations';
+import { fetchLiveWeather, hasWeatherKey } from '../services/weather';
+import { askSafetyAi } from '../services/safetyAi';
 
 interface AppContextType {
   language: Language;
@@ -15,11 +17,18 @@ interface AppContextType {
   setSelectedShelter: (shelter: ShelterInfo) => void;
   isRefreshing: boolean;
   refreshFeeds: () => void;
+  weather: LiveWeather | null;
+  weatherError: string | null;
+  userLocation: { lat: number; lon: number } | null;
+  locating: boolean;
+  locateMe: () => void;
+  clearMyLocation: () => void;
   checklist: Record<string, boolean>;
   toggleChecklistItem: (id: string) => void;
   soundEnabled: boolean;
   toggleSound: () => void;
   messages: ChatMessage[];
+  isAiThinking: boolean;
   sendChatMessage: (text: string) => void;
   isSpeaking: boolean;
   speakText: (text: string) => void;
@@ -37,6 +46,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isAiThinking, setIsAiThinking] = useState(false);
 
   const currentScenario = SCENARIOS[scenario];
   const [selectedShelter, setSelectedShelter] = useState<ShelterInfo>(
@@ -46,7 +56,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Keep selected shelter updated when scenario switches
   useEffect(() => {
     setSelectedShelter(currentScenario.shelters[0]);
-  }, [scenario]);
+  }, [currentScenario]);
 
   // Offline checklist state with localStorage
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => {
@@ -94,12 +104,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSoundEnabled(prev => !prev);
   };
 
-  const refreshFeeds = () => {
+  // ---------- Live weather (OpenWeatherMap) ----------
+  const [weather, setWeather] = useState<LiveWeather | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const weatherCoords = userLocation ?? { lat: currentScenario.lat, lon: currentScenario.lon };
+
+  const loadWeather = useCallback(async () => {
+    if (!hasWeatherKey()) {
+      setWeatherError('missing-key');
+      return;
+    }
+    try {
+      const w = await fetchLiveWeather(weatherCoords.lat, weatherCoords.lon, language);
+      setWeather(w);
+      setWeatherError(null);
+    } catch (e) {
+      setWeatherError(e instanceof Error ? e.message : 'Weather unavailable');
+    }
+  }, [weatherCoords.lat, weatherCoords.lon, language]);
+
+  useEffect(() => {
+    loadWeather();
+    const id = window.setInterval(loadWeather, 10 * 60 * 1000); // every 10 min
+    return () => window.clearInterval(id);
+  }, [loadWeather]);
+
+  const locateMe = () => {
+    if (!('geolocation' in navigator)) {
+      setWeatherError('Geolocation not supported on this device');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        setLocating(false);
+      },
+      err => {
+        setWeatherError(err.message);
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const clearMyLocation = () => setUserLocation(null);
+
+  const refreshFeeds = async () => {
     setIsRefreshing(true);
     playChime();
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 800);
+    await loadWeather();
+    setIsRefreshing(false);
   };
 
   // Chatbot State
@@ -139,51 +197,64 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [language]);
 
-  const sendChatMessage = (userText: string) => {
-    if (!userText.trim()) return;
+  const formatNow = () =>
+    new Date().toLocaleTimeString(language === 'bm' ? 'ms-MY' : 'en-MY', {
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+
+  const sendChatMessage = async (userText: string) => {
+    const trimmed = userText.trim();
+    if (!trimmed) return;
+
+    // Handle quick-action navigation chips if clicked
+    const lower = trimmed.toLowerCase();
+    if (lower === 'view nearest open shelter' || lower === 'lihat pusat pemindahan terdekat') {
+      setActiveTab('map');
+      return;
+    }
+    if (lower === 'emergency sos hotline' || lower === 'talian kecemasan terus sos') {
+      setActiveTab('sos');
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       sender: 'user',
-      text: userText,
-      timestamp: 'Now'
+      text: trimmed,
+      timestamp: formatNow()
     };
 
     setMessages(prev => [...prev, userMsg]);
+    setIsAiThinking(true);
 
-    // Match against knowledge base
-    const lower = userText.toLowerCase();
-    let kbKey: 'pack' | 'drive' | 'power' | 'trapped' = 'pack';
+    const reply = await askSafetyAi(trimmed, {
+      language,
+      scenario: currentScenario,
+      selectedShelter,
+      weather,
+      userLocation
+    });
 
-    if (lower.includes('pack') || lower.includes('kemas') || lower.includes('bag') || lower.includes('beg') || lower.includes('barang')) {
-      kbKey = 'pack';
-    } else if (lower.includes('drive') || lower.includes('car') || lower.includes('pandu') || lower.includes('kereta') || lower.includes('jalan')) {
-      kbKey = 'drive';
-    } else if (lower.includes('power') || lower.includes('electric') || lower.includes('elektrik') || lower.includes('suis') || lower.includes('fuse')) {
-      kbKey = 'power';
-    } else if (lower.includes('trap') || lower.includes('perangkap') || lower.includes('enter') || lower.includes('masuk') || lower.includes('rumah')) {
-      kbKey = 'trapped';
-    }
+    const assistantMsg: ChatMessage = {
+      id: `a-${Date.now()}`,
+      sender: 'assistant',
+      text: reply.title,
+      verificationSummary: reply.verificationSummary,
+      sourcesChecked: reply.sourcesChecked,
+      steps: reply.steps,
+      suggestions: reply.suggestions,
+      source: reply.source,
+      timestamp: formatNow()
+    };
 
-    const kbItem = AI_KNOWLEDGE_BASE[kbKey][language];
-
-    setTimeout(() => {
-      const assistantMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
-        sender: 'assistant',
-        text: kbItem.title,
-        steps: kbItem.steps,
-        suggestions: kbItem.suggestions,
-        timestamp: 'Just now'
-      };
-      setMessages(prev => [...prev, assistantMsg]);
-      playChime();
-    }, 400);
+    setIsAiThinking(false);
+    setMessages(prev => [...prev, assistantMsg]);
+    playChime();
   };
 
   const askAssistantDirectly = (promptKey: 'pack' | 'drive' | 'power' | 'trapped') => {
     setActiveTab('assistant');
-    const kb = AI_KNOWLEDGE_BASE[promptKey][language];
     const userPrompt = promptKey === 'pack'
       ? (language === 'bm' ? 'Apa yang patut saya kemas sekarang?' : 'What should I pack right now?')
       : promptKey === 'drive'
@@ -192,24 +263,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ? (language === 'bm' ? 'Perlukah tutup suis utama elektrik?' : 'Should I switch off the main breaker?')
       : (language === 'bm' ? 'Apa tindakan jika air masuk rumah?' : 'What if water enters my house?');
 
-    const userMsg: ChatMessage = {
-      id: `u-${Date.now()}`,
-      sender: 'user',
-      text: userPrompt,
-      timestamp: 'Now'
-    };
-
-    const assistantMsg: ChatMessage = {
-      id: `a-${Date.now()}`,
-      sender: 'assistant',
-      text: kb.title,
-      steps: kb.steps,
-      suggestions: kb.suggestions,
-      timestamp: 'Just now'
-    };
-
-    setMessages(prev => [...prev, userMsg, assistantMsg]);
-    playChime();
+    void sendChatMessage(userPrompt);
   };
 
   // Text to Speech
@@ -252,11 +306,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedShelter,
         isRefreshing,
         refreshFeeds,
+        weather,
+        weatherError,
+        userLocation,
+        locating,
+        locateMe,
+        clearMyLocation,
         checklist,
         toggleChecklistItem,
         soundEnabled,
         toggleSound,
         messages,
+        isAiThinking,
         sendChatMessage,
         isSpeaking,
         speakText,

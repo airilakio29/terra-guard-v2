@@ -14,6 +14,7 @@ import {
   Compass
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { LiveWeatherCard } from './LiveWeatherCard';
 
 export const StatusScreen: React.FC = () => {
   const { 
@@ -24,7 +25,8 @@ export const StatusScreen: React.FC = () => {
     setActiveTab, 
     setSelectedShelter, 
     t,
-    askAssistantDirectly 
+    askAssistantDirectly,
+    weather
   } = useApp();
 
   const isSafe = currentScenario.riskLevel === 'safe';
@@ -62,7 +64,13 @@ export const StatusScreen: React.FC = () => {
           title={t.pullToRefresh}
         >
           <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
-          <span>{isRefreshing ? t.refreshing : t.updatedAgo}</span>
+          <span>
+            {isRefreshing
+              ? t.refreshing
+              : weather
+                ? `${language === 'bm' ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(language === 'bm' ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
+                : t.updatedAgo}
+          </span>
         </button>
       </div>
 
@@ -194,6 +202,8 @@ export const StatusScreen: React.FC = () => {
 
         {/* Right Column: Hazards Nearby + AI Quick Guidance + Emergency SOS */}
         <div className="dashboard-column">
+          {/* Live Weather (OpenWeatherMap) */}
+          <LiveWeatherCard />
           {/* 4. Active Hazards (Plain List, No Complex Overlays) */}
           {currentScenario.hazards.length > 0 && (
             <div className="section-card">
