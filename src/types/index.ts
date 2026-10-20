@@ -50,6 +50,34 @@ export interface ScenarioData {
   nearestShelterId: string;
   hazards: HazardZone[];
   shelters: ShelterInfo[];
+  /** Real-world centre of the scenario area (verified via OpenWeather geocoding) */
+  lat: number;
+  lon: number;
+}
+
+export interface WeatherForecastSlot {
+  time: number;
+  tempC: number;
+  icon: string;
+  rainChance: number; // 0..1
+  rainMm: number;
+}
+
+export interface LiveWeather {
+  placeName: string;
+  description: string;
+  icon: string;
+  conditionId: number;
+  tempC: number;
+  feelsLikeC: number;
+  humidity: number;
+  windMs: number;
+  rain1hMm: number;
+  rain24hMm: number;
+  maxRainChance: number; // 0..1
+  forecast: WeatherForecastSlot[];
+  observedAt: number;
+  fetchedAt: number;
 }
 
 export interface ChatMessage {
@@ -57,8 +85,11 @@ export interface ChatMessage {
   sender: 'user' | 'assistant';
   text: string;
   timestamp: string;
+  verificationSummary?: string;
+  sourcesChecked?: string[];
   steps?: string[];
   suggestions?: string[];
+  source?: 'gemini' | 'offline';
 }
 
 export interface EmergencyContact {

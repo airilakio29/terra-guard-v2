@@ -17,6 +17,8 @@ export const SCENARIOS: Record<string, ScenarioData> = {
     primaryActionSubtitleEn: 'Dewan Serbaguna MPSJ (850m away • 11 min walk)',
     primaryActionSubtitleBm: 'Dewan Serbaguna MPSJ (850m • 11 min berjalan)',
     nearestShelterId: 'shelter-subang-1',
+    lat: 3.0515,
+    lon: 101.5823,
     hazards: [
       {
         id: 'h-1',
@@ -109,6 +111,8 @@ export const SCENARIOS: Record<string, ScenarioData> = {
     primaryActionSubtitleEn: 'SMK Sultan Ibrahim (600m away • 8 min walk)',
     primaryActionSubtitleBm: 'SMK Sultan Ibrahim (600m • 8 min berjalan)',
     nearestShelterId: 'shelter-kelantan-1',
+    lat: 6.0416,
+    lon: 102.1429,
     hazards: [
       {
         id: 'h-kb-1',
@@ -174,6 +178,8 @@ export const SCENARIOS: Record<string, ScenarioData> = {
     primaryActionSubtitleEn: 'Ensure 72-hour family essentials are packed',
     primaryActionSubtitleBm: 'Pastikan keperluan asas 72 jam keluarga lengkap',
     nearestShelterId: 'shelter-penang-1',
+    lat: 5.2948,
+    lon: 100.2596,
     hazards: [],
     shelters: [
       {

@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { ShelterInfo } from '../types';
+import { GoogleMapView, type RouteInfo } from './GoogleMapView';
+import { hasGoogleKey } from '../services/googleMaps';
 
 export const MapScreen: React.FC = () => {
   const { 
@@ -28,6 +30,13 @@ export const MapScreen: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'hazards' | 'shelters'>('all');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [isSheetMinimized, setIsSheetMinimized] = useState<boolean>(false);
+
+  // Google Maps is used when a key exists and loads successfully; otherwise the SVG map is the fallback
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const useGoogle = hasGoogleKey() && !googleError;
+  const [route, setRoute] = useState<RouteInfo | null>(null);
+  const [elevation, setElevation] = useState<{ shelter: number | null; user: number | null }>({ shelter: null, user: null });
+  const [recenterSignal, setRecenterSignal] = useState(0);
 
   // User's relative coordinates (0-100)
   const userCoord = { x: 45, y: 65 };
@@ -47,6 +56,7 @@ export const MapScreen: React.FC = () => {
 
   const handleRecenter = () => {
     setZoomLevel(1);
+    setRecenterSignal(n => n + 1);
   };
 
   const handleStartNavigation = () => {
@@ -90,20 +100,24 @@ export const MapScreen: React.FC = () => {
           >
             <Crosshair size={16} />
           </button>
-          <button 
-            className="map-ctrl-btn" 
-            onClick={handleZoomIn}
-            title="Zoom In"
-          >
-            <Plus size={16} />
-          </button>
-          <button 
-            className="map-ctrl-btn" 
-            onClick={handleZoomOut}
-            title="Zoom Out"
-          >
-            <Minus size={16} />
-          </button>
+          {!useGoogle && (
+            <>
+              <button 
+                className="map-ctrl-btn" 
+                onClick={handleZoomIn}
+                title="Zoom In"
+              >
+                <Plus size={16} />
+              </button>
+              <button 
+                className="map-ctrl-btn" 
+                onClick={handleZoomOut}
+                title="Zoom Out"
+              >
+                <Minus size={16} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -125,7 +139,24 @@ export const MapScreen: React.FC = () => {
           </span>
         </div>
 
-        {/* High Resolution SVG Vector Canvas */}
+        {useGoogle && (
+          <GoogleMapView
+            scenario={currentScenario}
+            userGrid={userCoord}
+            selectedShelter={selectedShelter}
+            filter={filter}
+            language={language}
+            recenterSignal={recenterSignal}
+            youAreHere={t.youAreHere}
+            onSelectShelter={handleShelterClick}
+            onRoute={setRoute}
+            onElevation={(shelter, user) => setElevation({ shelter, user })}
+            onFail={setGoogleError}
+          />
+        )}
+
+        {/* High Resolution SVG Vector Canvas (fallback when Google Maps is unavailable) */}
+        {!useGoogle && (
         <svg 
           className="map-svg-canvas" 
           viewBox="0 0 100 85" 
@@ -404,6 +435,16 @@ export const MapScreen: React.FC = () => {
             </text>
           </g>
         </svg>
+        )}
+
+        {/* Honest labelling of what is simulated */}
+        <div style={{
+          position: 'absolute', top: useGoogle ? 48 : 8, right: 8, zIndex: 5,
+          background: 'rgba(255,255,255,.92)', color: '#475569', fontSize: 10, fontWeight: 700,
+          padding: '3px 8px', borderRadius: 6, boxShadow: '0 1px 3px rgba(0,0,0,.2)'
+        }}>
+          {language === 'bm' ? 'Pusat & bahaya: data demo' : 'Shelters & hazards: demo data'}
+        </div>
 
         {/* 3. Floating Shelter Drawer at Bottom */}
         {selectedShelter && (
@@ -424,7 +465,9 @@ export const MapScreen: React.FC = () => {
                   {selectedShelter.status === 'open' ? t.openStatus : t.limitedStatus}
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-primary)' }}>
-                  {selectedShelter.distanceKm} km • {selectedShelter.walkMinutes} {t.walkMin}
+                  {route
+                    ? `${(route.meters / 1000).toFixed(2)} km • ${Math.max(1, Math.round(route.seconds / 60))} ${t.walkMin}`
+                    : `${selectedShelter.distanceKm} km • ${selectedShelter.walkMinutes} ${t.walkMin}`}
                 </span>
               </div>
 
@@ -456,6 +499,23 @@ export const MapScreen: React.FC = () => {
               {!isSheetMinimized && (
                 <div className="shelter-sheet-sub">
                   {selectedShelter.address}
+                  {useGoogle && elevation.shelter !== null && (
+                    <div style={{ marginTop: 2, fontWeight: 700, color: '#0369A1' }}>
+                      ⛰️ {language === 'bm' ? 'Altitud' : 'Elevation'}: {Math.round(elevation.shelter)} m
+                      {elevation.user !== null && (
+                        <span style={{ color: elevation.shelter >= elevation.user ? '#059669' : '#D97706' }}>
+                          {' '}({elevation.shelter >= elevation.user ? '▲' : '▼'} {Math.abs(Math.round(elevation.shelter - elevation.user))} m {language === 'bm' ? 'berbanding anda' : 'vs you'})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {useGoogle && route && (
+                    <div style={{ marginTop: 2, fontSize: 11, color: '#92400E' }}>
+                      ⚠️ {language === 'bm'
+                        ? 'Laluan Google tidak mengelak kawasan banjir. Semak keadaan jalan sebelum bergerak.'
+                        : 'Google route does not avoid flooded areas. Check road conditions before moving.'}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
