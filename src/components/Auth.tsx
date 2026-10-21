@@ -357,7 +357,7 @@ const Auth: React.FC = () => {
               onClick={loginAsGuest}
               disabled={loading}
             >
-              <UserCheck size={18} color="#38BDF8" />
+              <UserCheck size={18} color="var(--brand-primary)" />
               <span>Login as a Guest</span>
             </button>
 

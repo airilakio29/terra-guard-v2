@@ -6,11 +6,14 @@ import { StatusScreen } from './components/StatusScreen';
 import { MapScreen } from './components/MapScreen';
 import { AssistantScreen } from './components/AssistantScreen';
 import { SosScreen } from './components/SosScreen';
+import { SettingsScreen } from './components/SettingsScreen';
+import { FloatingBackground } from './components/FloatingBackground';
 import { BottomNav } from './components/BottomNav';
+import { SplashScreen } from './components/SplashScreen';
 import Auth from './components/Auth';
 import { Smartphone, LayoutDashboard, Maximize2 } from 'lucide-react';
 
-// ─── Dashboard Layout (authenticated users only) ─────────────────────────────
+// ─── Dashboard Layout (authenticated or guest users) ─────────────────────────
 
 const MainLayout: React.FC = () => {
   const { activeTab } = useApp();
@@ -19,6 +22,8 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="app-outer-shell">
+      <FloatingBackground />
+
       {/* Desktop View Mode Switcher Toolbar */}
       <div className="desktop-only-bar">
         <span>View Layout:</span>
@@ -46,10 +51,13 @@ const MainLayout: React.FC = () => {
       <div className={`app-container app-container--${viewMode}`}>
         <Header />
 
-        {activeTab === 'status' && <StatusScreen />}
-        {activeTab === 'map' && <MapScreen />}
-        {activeTab === 'assistant' && <AssistantScreen />}
-        {activeTab === 'sos' && <SosScreen />}
+        <div key={activeTab} className="tab-screen-container">
+          {activeTab === 'status' && <StatusScreen />}
+          {activeTab === 'map' && <MapScreen />}
+          {activeTab === 'assistant' && <AssistantScreen />}
+          {activeTab === 'sos' && <SosScreen />}
+          {activeTab === 'settings' && <SettingsScreen />}
+        </div>
 
         <BottomNav />
       </div>
@@ -57,35 +65,38 @@ const MainLayout: React.FC = () => {
   );
 };
 
-// ─── Root with auth gating ───────────────────────────────────────────────────
+// ─── App Root with Flow & Shared Transitions ─────────────────────────────────
 
 const AppRoot: React.FC = () => {
-  const { firebaseUser, isGuest, authLoading } = useAuth();
+  const { user, isGuest } = useAuth();
+  const [splashFinished, setSplashFinished] = useState(false);
 
-  // While Firebase resolves the initial auth state, show nothing (or a splash)
-  if (authLoading && !isGuest) {
+  // 1. Splash Screen (~2.5s with background auth check)
+  if (!splashFinished) {
     return (
-      <div className="auth-page">
-        <div className="auth-loading-splash">
-          <div className="auth-logo" style={{ margin: '0 auto 16px' }}>
-            🛡️
-          </div>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading TerraGuard…</p>
-        </div>
+      <SplashScreen
+        onFinish={() => setSplashFinished(true)}
+      />
+    );
+  }
+
+  // 2. Original Login Screen (if not signed in and not guest)
+  const isAuthenticated = Boolean(user || isGuest);
+  if (!isAuthenticated) {
+    return (
+      <div className="screen-transition" key="screen-login">
+        <Auth />
       </div>
     );
   }
 
-  // Not signed in and not guest → show the Auth page
-  if (!firebaseUser && !isGuest) {
-    return <Auth />;
-  }
-
-  // Signed in or Guest → show the full app
+  // 3. Main UI (bypasses login if signed in or guest, with shared transition)
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <div className="screen-transition" key="screen-main">
+      <AppProvider>
+        <MainLayout />
+      </AppProvider>
+    </div>
   );
 };
 

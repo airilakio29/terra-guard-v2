@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
+  signOut as fbSignOut,
+  type User,
+  type UserCredential,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 // ─── User Profile (matches Firestore `users/{uid}` document) ─────────────────
@@ -14,27 +24,50 @@ export interface UserProfile {
   hazardVulnerability: 'flood' | 'earthquake' | 'wildfire' | 'none';
   medicalNotes: string;
   role: 'citizen' | 'responder' | 'admin';
-  createdAt: unknown; // Firestore Timestamp
+  createdAt: unknown;
   updatedAt: unknown;
 }
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
-interface AuthContextType {
-  /** Raw Firebase Auth user, null when signed out */
+export interface AuthContextType {
+  /** Active Firebase user or null */
+  user: User | null;
+  /** Backwards compatibility alias */
   firebaseUser: User | null;
   /** Extended Firestore profile, null when signed out or loading */
   userProfile: UserProfile | null;
-  /** Whether the user is signed in as a guest */
+  /** Whether the user is signed in as an emergency guest */
   isGuest: boolean;
+  /** Backwards compatibility alias */
+  guest: boolean;
   /** True while the initial auth state is resolving */
+  loading: boolean;
+  /** Backwards compatibility alias */
   authLoading: boolean;
   /** True while the Firestore profile is being fetched */
   profileLoading: boolean;
-  /** Sign the current user out */
-  logout: () => Promise<void>;
-  /** Login instantly as a guest without credentials */
+
+  /** Sign in with email and password */
+  signInWithEmail: (email: string, pass: string) => Promise<UserCredential>;
+  /** Register a new user and create their Firestore profile */
+  signUpWithEmail: (
+    email: string,
+    pass: string,
+    profileData?: Partial<UserProfile>
+  ) => Promise<UserCredential>;
+  /** Sign in with Google provider popup */
+  signInWithGoogle: () => Promise<UserCredential>;
+  /** Send password reset link to user's email */
+  resetPassword: (email: string) => Promise<void>;
+  /** Login instantly as guest without credentials */
+  continueAsGuest: () => void;
+  /** Backwards compatibility alias */
   loginAsGuest: () => void;
+  /** Sign out active user or guest session */
+  signOut: () => Promise<void>;
+  /** Backwards compatibility alias */
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,23 +106,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (snap.exists()) {
             setUserProfile(snap.data() as UserProfile);
           } else {
-            // Profile missing (e.g., created outside this flow) — provide minimal fallback
-            setUserProfile({
+            // Profile missing (e.g. Google Sign-In first time or created externally)
+            const fallbackProfile: UserProfile = {
               uid: user.uid,
               email: user.email,
-              fullName: user.displayName ?? '',
-              phoneNumber: '',
+              fullName: user.displayName || 'Civilian',
+              phoneNumber: user.phoneNumber || '',
               homeAddress: '',
               hazardVulnerability: 'none',
               medicalNotes: '',
               role: 'citizen',
-              createdAt: null,
-              updatedAt: null,
-            });
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            };
+            try {
+              await setDoc(doc(db, 'users', user.uid), fallbackProfile);
+            } catch (saveErr) {
+              console.warn('[AuthContext] Could not auto-create missing user doc:', saveErr);
+            }
+            setUserProfile(fallbackProfile);
           }
         } catch (e) {
           console.error('[AuthContext] Failed to fetch user profile:', e);
-          setUserProfile(null);
+          setUserProfile({
+            uid: user.uid,
+            email: user.email,
+            fullName: user.displayName || 'Civilian',
+            phoneNumber: '',
+            homeAddress: '',
+            hazardVulnerability: 'none',
+            medicalNotes: '',
+            role: 'citizen',
+            createdAt: null,
+            updatedAt: null,
+          });
         } finally {
           setProfileLoading(false);
         }
@@ -105,7 +155,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, [isGuest]);
 
-  const loginAsGuest = () => {
+  const signInWithEmail = async (email: string, pass: string): Promise<UserCredential> => {
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    setIsGuest(false);
+    return cred;
+  };
+
+  const signUpWithEmail = async (
+    email: string,
+    pass: string,
+    profileData?: Partial<UserProfile>
+  ): Promise<UserCredential> => {
+    const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+    const user = cred.user;
+
+    const newProfile: Partial<UserProfile> = {
+      uid: user.uid,
+      email: user.email,
+      fullName: profileData?.fullName?.trim() || user.displayName || 'Civilian',
+      phoneNumber: profileData?.phoneNumber?.trim() || '',
+      homeAddress: profileData?.homeAddress?.trim() || '',
+      hazardVulnerability: profileData?.hazardVulnerability || 'none',
+      medicalNotes: profileData?.medicalNotes?.trim() || '',
+      role: profileData?.role || 'citizen',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    try {
+      await setDoc(doc(db, 'users', user.uid), newProfile);
+      setUserProfile(newProfile as UserProfile);
+    } catch (err) {
+      console.error('[AuthContext] Error creating user profile document:', err);
+    }
+
+    setIsGuest(false);
+    return cred;
+  };
+
+  const signInWithGoogle = async (): Promise<UserCredential> => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    const cred = await signInWithPopup(auth, provider);
+    setIsGuest(false);
+    try {
+      localStorage.removeItem('terra_guard_guest_session');
+    } catch {
+      // ignore
+    }
+    return cred;
+  };
+
+  const resetPassword = async (email: string): Promise<void> => {
+    await sendPasswordResetEmail(auth, email.trim());
+  };
+
+  const continueAsGuest = () => {
     setIsGuest(true);
     try {
       localStorage.setItem('terra_guard_guest_session', 'true');
@@ -126,7 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const logout = async () => {
+  const signOut = async () => {
     setIsGuest(false);
     try {
       localStorage.removeItem('terra_guard_guest_session');
@@ -134,21 +239,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ignore
     }
     if (auth.currentUser) {
-      await signOut(auth);
+      await fbSignOut(auth);
     }
     setUserProfile(null);
+    setFirebaseUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{
-      firebaseUser,
-      userProfile,
-      isGuest,
-      authLoading,
-      profileLoading,
-      logout,
-      loginAsGuest,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user: firebaseUser,
+        firebaseUser,
+        userProfile,
+        isGuest,
+        guest: isGuest,
+        loading: authLoading,
+        authLoading,
+        profileLoading,
+        signInWithEmail,
+        signUpWithEmail,
+        signInWithGoogle,
+        resetPassword,
+        continueAsGuest,
+        loginAsGuest: continueAsGuest,
+        signOut,
+        logout: signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
