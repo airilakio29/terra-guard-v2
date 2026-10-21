@@ -4,10 +4,10 @@ import { useApp } from '../context/AppContext';
 import { iconUrl, rainOutlook } from '../services/weather';
 
 const OUTLOOK_TEXT = {
-  none: { en: 'No rain expected in next 24h', bm: 'Tiada hujan dijangka 24 jam akan datang', color: '#059669', bg: '#ECFDF5' },
-  light: { en: 'Light rain possible in next 24h', bm: 'Hujan renyai mungkin dalam 24 jam', color: '#0284C7', bg: '#F0F9FF' },
-  moderate: { en: 'Moderate rain expected - watch drains & low roads', bm: 'Hujan sederhana dijangka - awasi longkang & jalan rendah', color: '#D97706', bg: '#FFFBEB' },
-  heavy: { en: 'Heavy rain / thunderstorm - flash flood risk rises', bm: 'Hujan lebat / ribut petir - risiko banjir kilat meningkat', color: '#DC2626', bg: '#FEF2F2' }
+  none: { en: 'No rain expected in next 24h', bm: 'Tiada hujan dijangka 24 jam akan datang', color: 'var(--safe-accent)', bg: 'var(--safe-bg)' },
+  light: { en: 'Light rain possible in next 24h', bm: 'Hujan renyai mungkin dalam 24 jam', color: 'var(--brand-primary)', bg: 'var(--brand-surface)' },
+  moderate: { en: 'Moderate rain expected - watch drains & low roads', bm: 'Hujan sederhana dijangka - awasi longkang & jalan rendah', color: 'var(--advisory-accent)', bg: 'var(--advisory-bg)' },
+  heavy: { en: 'Heavy rain / thunderstorm - flash flood risk rises', bm: 'Hujan lebat / ribut petir - risiko banjir kilat meningkat', color: 'var(--danger-accent)', bg: 'var(--danger-bg)' }
 } as const;
 
 function timeAgo(ms: number, bm: boolean) {
@@ -44,7 +44,7 @@ export const LiveWeatherCard: React.FC = () => {
     <div className="section-card weather-card">
       <div className="weather-card__head">
         <div className="section-title" style={{ marginBottom: 0 }}>
-          <Radio size={16} color="#DC2626" className="weather-live-dot" />
+          <Radio size={16} color="var(--danger-accent)" className="weather-live-dot" />
           <span>{bm ? 'Cuaca Langsung' : 'Live Weather'}</span>
         </div>
         <button className="weather-icon-btn" onClick={refreshFeeds} disabled={isRefreshing} title={bm ? 'Muat semula' : 'Refresh'}>

@@ -5,13 +5,22 @@ import { TRANSLATIONS } from '../data/translations';
 import { fetchLiveWeather, hasWeatherKey } from '../services/weather';
 import { askSafetyAi } from '../services/safetyAi';
 
+import { useAuth } from './AuthContext';
+import { DEFAULT_THEME_ID, getThemeById, applyTheme } from '../data/themes';
+import { DEFAULT_AVATAR_ID } from '../components/PresetAvatars';
+import { saveUserAvatar, getCachedAvatar, type SaveAvatarResult } from '../services/avatarStorage';
+import { doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+export type AppTab = 'status' | 'map' | 'assistant' | 'sos' | 'settings';
+
 interface AppContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   scenario: RiskLevel;
   setScenario: (scenario: RiskLevel) => void;
-  activeTab: 'status' | 'map' | 'assistant' | 'sos';
-  setActiveTab: (tab: 'status' | 'map' | 'assistant' | 'sos') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   currentScenario: ScenarioData;
   selectedShelter: ShelterInfo;
   setSelectedShelter: (shelter: ShelterInfo) => void;
@@ -35,14 +44,47 @@ interface AppContextType {
   stopSpeaking: () => void;
   t: typeof TRANSLATIONS.en;
   askAssistantDirectly: (promptKey: 'pack' | 'drive' | 'power' | 'trapped') => void;
+
+  // Appearance & Theme Management
+  themeId: string;
+  setThemeId: (id: string) => void;
+  reduceEffects: boolean;
+  setReduceEffects: (val: boolean) => void;
+  reduceMotion: boolean;
+  setReduceMotion: (val: boolean) => void;
+
+  // Civilian Profile & Avatar Customization
+  avatarUrl: string;
+  updateAvatar: (newAvatar: string) => Promise<SaveAvatarResult>;
+  displayName: string;
+  updateDisplayName: (name: string) => Promise<void>;
+  isSavingProfile: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en');
+  const { user, isGuest, userProfile } = useAuth();
+
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('terra_guard_lang');
+      return (saved === 'bm' || saved === 'en') ? saved : 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem('terra_guard_lang', lang);
+    } catch {
+      // ignore
+    }
+  };
   const [scenario, setScenario] = useState<RiskLevel>('advisory');
-  const [activeTab, setActiveTab] = useState<'status' | 'map' | 'assistant' | 'sos'>('status');
+  const [activeTab, setActiveTab] = useState<AppTab>('status');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -292,6 +334,141 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const t = TRANSLATIONS[language];
 
+  // ─── Theme & Appearance Management ──────────────────────────────────────────
+  const [themeId, setThemeIdState] = useState<string>(() => {
+    try {
+      return localStorage.getItem('terra_guard_theme') || DEFAULT_THEME_ID;
+    } catch {
+      return DEFAULT_THEME_ID;
+    }
+  });
+
+  const [reduceEffects, setReduceEffectsState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('terra_guard_reduce_effects') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [reduceMotion, setReduceMotionState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('terra_guard_reduce_motion') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Apply visual theme to document root whenever themeId or visual overrides change
+  useEffect(() => {
+    const themeConfig = getThemeById(themeId);
+    applyTheme(themeConfig, reduceEffects, reduceMotion);
+  }, [themeId, reduceEffects, reduceMotion]);
+
+  const setThemeId = (newId: string) => {
+    setThemeIdState(newId);
+    try {
+      localStorage.setItem('terra_guard_theme', newId);
+    } catch (e) {
+      console.warn('[AppContext] Could not save theme to localStorage:', e);
+    }
+    if (user && !isGuest) {
+      updateDoc(doc(db, 'users', user.uid), { themeId: newId }).catch((err) => {
+        console.warn('[AppContext] Could not sync theme to Firestore:', err);
+      });
+    }
+  };
+
+  const setReduceEffects = (val: boolean) => {
+    setReduceEffectsState(val);
+    try {
+      localStorage.setItem('terra_guard_reduce_effects', String(val));
+    } catch (e) {
+      console.warn('[AppContext] Could not save reduceEffects to localStorage:', e);
+    }
+    if (user && !isGuest) {
+      updateDoc(doc(db, 'users', user.uid), { reduceEffects: val }).catch(console.warn);
+    }
+  };
+
+  const setReduceMotion = (val: boolean) => {
+    setReduceMotionState(val);
+    try {
+      localStorage.setItem('terra_guard_reduce_motion', String(val));
+    } catch (e) {
+      console.warn('[AppContext] Could not save reduceMotion to localStorage:', e);
+    }
+    if (user && !isGuest) {
+      updateDoc(doc(db, 'users', user.uid), { reduceMotion: val }).catch(console.warn);
+    }
+  };
+
+  // ─── Profile & Avatar Customization ─────────────────────────────────────────
+  const [avatarUrl, setAvatarUrlState] = useState<string>(() => {
+    const cached = getCachedAvatar(user?.uid, isGuest);
+    if (cached) return cached;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (userProfile as any)?.avatarUrl || DEFAULT_AVATAR_ID;
+  });
+
+  const [displayName, setDisplayNameState] = useState<string>(() => {
+    if (isGuest) {
+      try {
+        const guestName = localStorage.getItem('terra_guard_guest_name');
+        if (guestName) return guestName;
+      } catch {}
+      return 'Emergency Guest Civilian';
+    }
+    return userProfile?.fullName || user?.displayName || 'Civilian';
+  });
+
+  const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
+
+  // Synchronize when auth userProfile resolves from Firestore
+  useEffect(() => {
+    if (userProfile?.fullName) {
+      setDisplayNameState(userProfile.fullName);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const remoteAvatar = (userProfile as any)?.avatarUrl;
+    if (remoteAvatar) {
+      setAvatarUrlState(remoteAvatar);
+    }
+  }, [userProfile]);
+
+  const updateAvatar = async (newAvatar: string): Promise<SaveAvatarResult> => {
+    setIsSavingProfile(true);
+    setAvatarUrlState(newAvatar);
+    try {
+      const result = await saveUserAvatar(user?.uid, isGuest, newAvatar);
+      setAvatarUrlState(result.url);
+      return result;
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const updateDisplayName = async (name: string): Promise<void> => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setIsSavingProfile(true);
+    setDisplayNameState(trimmed);
+    try {
+      if (isGuest) {
+        localStorage.setItem('terra_guard_guest_name', trimmed);
+      } else if (user) {
+        try {
+          await setDoc(doc(db, 'users', user.uid), { fullName: trimmed, updatedAt: new Date() }, { merge: true });
+        } catch (fsErr) {
+          console.warn('[AppContext] Firestore offline, saved name to localStorage:', fsErr);
+        }
+        localStorage.setItem(`terra_guard_user_name_${user.uid}`, trimmed);
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -323,7 +500,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         speakText,
         stopSpeaking,
         t,
-        askAssistantDirectly
+        askAssistantDirectly,
+        themeId,
+        setThemeId,
+        reduceEffects,
+        setReduceEffects,
+        reduceMotion,
+        setReduceMotion,
+        avatarUrl,
+        updateAvatar,
+        displayName,
+        updateDisplayName,
+        isSavingProfile
       }}
     >
       {children}

@@ -33,8 +33,8 @@ export const SosScreen: React.FC = () => {
   return (
     <div className="screen-scroll-container">
       {/* 1. Direct Emergency Hotlines Section */}
-      <div className="section-card" style={{ borderLeft: '4px solid #DC2626' }}>
-        <div className="section-title" style={{ color: '#DC2626' }}>
+      <div className="section-card" style={{ borderLeft: '4px solid var(--danger-accent)' }}>
+        <div className="section-title" style={{ color: 'var(--danger-accent)' }}>
           <ShieldAlert size={18} />
           <span>{t.hotlinesTitle}</span>
         </div>
@@ -74,7 +74,7 @@ export const SosScreen: React.FC = () => {
                     alignItems: 'center'
                   }}
                 >
-                  {copiedId === c.id ? <CheckCheck size={16} color="#059669" /> : <Copy size={16} color="var(--text-muted)" />}
+                  {copiedId === c.id ? <CheckCheck size={16} color="var(--safe-accent)" /> : <Copy size={16} color="var(--text-muted)" />}
                 </button>
 
                 <a 
@@ -112,7 +112,7 @@ export const SosScreen: React.FC = () => {
             className="capacity-bar-fill" 
             style={{ 
               width: `${progressPercent}%`, 
-              background: progressPercent === 100 ? '#10B981' : 'var(--brand-primary)' 
+              background: progressPercent === 100 ? 'var(--safe-badge)' : 'var(--brand-primary)' 
             }}
           />
         </div>
@@ -127,7 +127,7 @@ export const SosScreen: React.FC = () => {
                 onClick={() => toggleChecklistItem(item.id)}
               >
                 <div className="checkbox-custom">
-                  {isChecked && <Check size={14} />}
+                  {isChecked && <Check size={14} className="checkbox-check-icon" />}
                 </div>
                 <div>
                   <div className="checklist-title">

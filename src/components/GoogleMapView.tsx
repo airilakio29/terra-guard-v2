@@ -29,10 +29,15 @@ const LABELS = {
   bm: { roadmap: 'Peta', terrain: 'Rupa Bumi', hybrid: 'Satelit', traffic: 'Trafik' }
 };
 
-const pill = (text: string, bg: string, fg: string, border = 'rgba(0,0,0,.15)') => {
+const getVar = (name: string, fallback = '') => {
+  if (typeof window === 'undefined') return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+};
+
+const pill = (text: string, bg: string, fg: string, border = 'var(--border-subtle)') => {
   const el = document.createElement('div');
   el.textContent = text;
-  el.style.cssText = `background:${bg};color:${fg};border:1px solid ${border};border-radius:999px;padding:3px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25);`;
+  el.style.cssText = `background:${bg};color:${fg};border:1px solid ${border};border-radius:999px;padding:3px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:var(--shadow-sm);`;
   return el;
 };
 
@@ -101,10 +106,15 @@ export const GoogleMapView: React.FC<Props> = ({
     if (!ready || !map) return;
     const cleanups: (() => void)[] = [];
 
+    const dangerColor = getVar('--danger-accent');
+    const advisoryColor = getVar('--advisory-accent');
+    const safeColor = getVar('--safe-accent');
+    const brandColor = getVar('--brand-primary');
+
     if (filter === 'all' || filter === 'hazards') {
       scenario.hazards.forEach(h => {
         const c = toLatLng(scenario, h.coords.x, h.coords.y);
-        const color = h.severity === 'danger' ? '#DC2626' : '#F59E0B';
+        const color = h.severity === 'danger' ? dangerColor : advisoryColor;
         const circle = new google.maps.Circle({
           map, center: c, radius: unitsToMeters(h.coords.radius),
           strokeColor: color, strokeOpacity: 0.9, strokeWeight: 2,
@@ -112,7 +122,7 @@ export const GoogleMapView: React.FC<Props> = ({
         });
         const label = new google.maps.marker.AdvancedMarkerElement({
           map, position: c,
-          content: pill(`⚠️ ${h.waterDepthMeters ? `${h.waterDepthMeters} m` : 'Hazard'}`, '#FEF2F2', '#991B1B', color),
+          content: pill(`⚠️ ${h.waterDepthMeters ? `${h.waterDepthMeters} m` : 'Hazard'}`, 'var(--danger-bg)', 'var(--danger-text)', color),
           title: language === 'bm' ? h.titleBm : h.title
         });
         cleanups.push(() => { circle.setMap(null); label.map = null; });
@@ -124,7 +134,7 @@ export const GoogleMapView: React.FC<Props> = ({
         const sel = s.id === selectedShelter.id;
         const m = new google.maps.marker.AdvancedMarkerElement({
           map, position: toLatLng(scenario, s.coords.x, s.coords.y),
-          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? '#0284C7' : '#059669', '#fff', '#fff'),
+          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? brandColor : safeColor, 'var(--text-inverse)', 'var(--text-inverse)'),
           title: s.name,
           zIndex: sel ? 10 : 1
         });
@@ -134,7 +144,7 @@ export const GoogleMapView: React.FC<Props> = ({
     }
 
     const me = new google.maps.marker.AdvancedMarkerElement({
-      map, position: userPos, content: pill(`📍 ${youAreHere}`, '#0F172A', '#fff', '#38BDF8'), zIndex: 20
+      map, position: userPos, content: pill(`📍 ${youAreHere}`, 'var(--text-primary)', 'var(--text-inverse)', brandColor), zIndex: 20
     });
     cleanups.push(() => { me.map = null; });
 
@@ -149,13 +159,14 @@ export const GoogleMapView: React.FC<Props> = ({
     let cancelled = false;
     let line: google.maps.Polyline | null = null;
     const dest = toLatLng(scenario, selectedShelter.coords.x, selectedShelter.coords.y);
+    const routeColor = getVar('--map-route');
 
     fetchWalkRoute(userPos, dest)
       .then(r => {
         if (cancelled) return;
         line = new google.maps.Polyline({
           map, path: google.maps.geometry.encoding.decodePath(r.encodedPolyline),
-          strokeColor: '#0284C7', strokeWeight: 6, strokeOpacity: 0.9
+          strokeColor: routeColor, strokeWeight: 6, strokeOpacity: 0.9
         });
         onRoute({ meters: r.meters, seconds: r.seconds });
       })
@@ -175,7 +186,7 @@ export const GoogleMapView: React.FC<Props> = ({
   const L = LABELS[language];
   const btn = (active: boolean): React.CSSProperties => ({
     border: 'none', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-    background: active ? '#0284C7' : '#fff', color: active ? '#fff' : '#0F172A'
+    background: active ? 'var(--brand-primary)' : 'var(--bg-surface)', color: active ? 'var(--text-inverse)' : 'var(--text-primary)'
   });
 
   return (
@@ -185,18 +196,18 @@ export const GoogleMapView: React.FC<Props> = ({
         <div style={{
           position: 'absolute', top: 10, left: 10, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap'
         }}>
-          <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }}>
+          <div style={{ display: 'flex', borderRadius: 'var(--radius-sm)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-subtle)' }}>
             {(['roadmap', 'terrain', 'hybrid'] as MapKind[]).map(k => (
               <button key={k} style={btn(mapKind === k)} onClick={() => setMapKind(k)}>{L[k]}</button>
             ))}
           </div>
-          <div style={{ borderRadius: 8, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.3)' }}>
+          <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-subtle)' }}>
             <button style={btn(traffic)} onClick={() => setTraffic(t => !t)}>🚦 {L.traffic}</button>
           </div>
         </div>
       )}
       {!ready && (
-        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#475569', fontSize: 13 }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
           {language === 'bm' ? 'Memuatkan Google Maps…' : 'Loading Google Maps…'}
         </div>
       )}

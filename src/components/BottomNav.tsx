@@ -3,7 +3,8 @@ import {
   ShieldAlert, 
   MapPin, 
   Bot, 
-  PhoneCall 
+  PhoneCall,
+  Settings 
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -45,12 +46,22 @@ export const BottomNav: React.FC = () => {
       <button 
         className={`nav-tab-btn ${activeTab === 'sos' ? 'active' : ''}`}
         onClick={() => setActiveTab('sos')}
-        style={{ color: activeTab === 'sos' ? '#DC2626' : undefined }}
+        style={{ color: activeTab === 'sos' ? 'var(--danger-accent)' : undefined }}
       >
         <div className="nav-tab-icon">
           <PhoneCall size={22} />
         </div>
-        <span style={{ color: activeTab === 'sos' ? '#DC2626' : undefined }}>{t.navSos}</span>
+        <span style={{ color: activeTab === 'sos' ? 'var(--danger-accent)' : undefined }}>{t.navSos}</span>
+      </button>
+
+      <button 
+        className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
+        onClick={() => setActiveTab('settings')}
+      >
+        <div className="nav-tab-icon">
+          <Settings size={22} />
+        </div>
+        <span>{t.navSettings}</span>
       </button>
     </nav>
   );

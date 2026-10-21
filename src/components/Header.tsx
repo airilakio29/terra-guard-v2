@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldAlert, Volume2, VolumeX, Sparkles, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { AvatarDisplay } from './PresetAvatars';
 
 export const Header: React.FC = () => {
   const { 
@@ -11,7 +12,10 @@ export const Header: React.FC = () => {
     setScenario, 
     soundEnabled, 
     toggleSound, 
-    t 
+    t,
+    avatarUrl,
+    displayName,
+    setActiveTab
   } = useApp();
   const { logout } = useAuth();
 
@@ -22,7 +26,7 @@ export const Header: React.FC = () => {
           <div className="top-bar__icon">
             <ShieldAlert size={20} />
           </div>
-          <div>
+          <div key={language} className="cross-fade-text">
             <div className="top-bar__title">{t.appTitle}</div>
             <div className="top-bar__subtitle">{t.appSubtitle}</div>
           </div>
@@ -35,7 +39,7 @@ export const Header: React.FC = () => {
             title={soundEnabled ? t.soundOn : t.soundOff}
             style={{ padding: '6px' }}
           >
-            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} color="#94A3B8" />}
+            {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} color="var(--text-muted)" />}
           </button>
 
           <div className="lang-toggle">
@@ -54,13 +58,22 @@ export const Header: React.FC = () => {
           </div>
 
           <button
+            className="top-bar-avatar-btn"
+            onClick={() => setActiveTab('settings')}
+            title={t.settingsTitle}
+            aria-label={t.settingsTitle}
+          >
+            <AvatarDisplay avatarUrl={avatarUrl} name={displayName} size={28} />
+          </button>
+
+          <button
             className="lang-btn"
             onClick={() => void logout()}
             title="Log Out"
             style={{ padding: '6px', marginLeft: '4px' }}
             aria-label="Log Out"
           >
-            <LogOut size={16} color="#F87171" />
+            <LogOut size={16} color="var(--danger-accent)" />
           </button>
         </div>
       </header>
@@ -68,10 +81,10 @@ export const Header: React.FC = () => {
       {/* Demo Scenario Selector Strip for Evaluators */}
       <div className="scenario-selector-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Sparkles size={12} color="#38BDF8" />
-          <span>{t.demoScenario}:</span>
+          <Sparkles size={12} color="var(--brand-accent)" />
+          <span key={language} className="cross-fade-text">{t.demoScenario}:</span>
         </div>
-        <div className="scenario-pill-group">
+        <div key={language} className="scenario-pill-group cross-fade-text">
           <button 
             className={`scenario-pill ${scenario === 'advisory' ? 'active' : ''}`}
             onClick={() => setScenario('advisory')}

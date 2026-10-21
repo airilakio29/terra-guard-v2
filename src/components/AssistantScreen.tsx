@@ -82,8 +82,8 @@ export const AssistantScreen: React.FC = () => {
                       borderRadius: '999px',
                       fontSize: '10px',
                       fontWeight: 700,
-                      background: m.source === 'gemini' ? '#E0F2FE' : '#F1F5F9',
-                      color: m.source === 'gemini' ? '#0369A1' : '#475569'
+                      background: m.source === 'gemini' ? 'var(--brand-surface)' : 'var(--bg-subtle)',
+                      color: m.source === 'gemini' ? 'var(--brand-primary)' : 'var(--text-secondary)'
                     }}
                   >
                     <Sparkles size={10} />
@@ -105,13 +105,13 @@ export const AssistantScreen: React.FC = () => {
                     marginTop: '8px',
                     padding: '8px 10px',
                     borderRadius: '8px',
-                    background: '#F0F9FF',
-                    border: '1px solid #BAE6FD',
+                    background: 'var(--brand-surface)',
+                    border: '1px solid var(--brand-border)',
                     fontSize: '12px',
-                    color: '#0C4A6E'
+                    color: 'var(--text-primary)'
                   }}
                 >
-                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px', color: '#0369A1' }}>
+                  <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px', color: 'var(--brand-primary)' }}>
                     <ShieldCheck size={14} />
                     <span>
                       {language === 'bm'
@@ -130,8 +130,9 @@ export const AssistantScreen: React.FC = () => {
                           style={{
                             fontSize: '10px',
                             fontWeight: 600,
-                            background: '#E0F2FE',
-                            color: '#075985',
+                            background: 'var(--bg-surface)',
+                            color: 'var(--brand-hover)',
+                            border: '1px solid var(--brand-border)',
                             padding: '2px 6px',
                             borderRadius: '4px'
                           }}
@@ -198,7 +199,7 @@ export const AssistantScreen: React.FC = () => {
         {isAiThinking && (
           <div className="chat-bubble chat-bubble--assistant" style={{ opacity: 0.92 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#0284C7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--brand-primary)' }}>
                 <Sparkles size={14} className="spin-icon" />
                 <span>
                   {language === 'bm'
@@ -206,7 +207,7 @@ export const AssistantScreen: React.FC = () => {
                     : 'Running multi-source Deep Research & Verification...'}
                 </span>
               </div>
-              <div style={{ fontSize: '11px', color: '#475569', paddingLeft: '20px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', paddingLeft: '20px' }}>
                 {language === 'bm'
                   ? '• Menyemak radar hujan OpenWeather, luahan sungai satelit Copernicus GloFAS & protokol NADMA/JPS'
                   : '• Checking OpenWeather rainfall radar, Copernicus GloFAS river discharge & NADMA/JPS protocols'}

@@ -125,16 +125,16 @@ export const MapScreen: React.FC = () => {
       <div className="map-viewport-frame">
         {/* Floating Legend */}
         <div className="map-floating-legend">
-          <span style={{ color: '#0284C7', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0284C7', display: 'inline-block' }} /> 
+          <span style={{ color: 'var(--map-user-pin)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--map-user-pin)', display: 'inline-block' }} /> 
             {t.youAreHere}
           </span>
-          <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#059669', display: 'inline-block' }} /> 
+          <span style={{ color: 'var(--map-shelter-pin)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--map-shelter-pin)', display: 'inline-block' }} /> 
             Shelter
           </span>
-          <span style={{ color: '#DC2626', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#DC2626', display: 'inline-block' }} /> 
+          <span style={{ color: 'var(--danger-accent)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger-accent)', display: 'inline-block' }} /> 
             Hazard
           </span>
         </div>
@@ -155,7 +155,7 @@ export const MapScreen: React.FC = () => {
           />
         )}
 
-        {/* High Resolution SVG Vector Canvas (fallback when Google Maps is unavailable) */}
+        {/* High Resolution SVG Vector Canvas (re-styles automatically with every active theme) */}
         {!useGoogle && (
         <svg 
           className="map-svg-canvas" 
@@ -164,49 +164,49 @@ export const MapScreen: React.FC = () => {
           style={{ transform: `scale(${zoomLevel})` }}
         >
           <defs>
-            {/* River Gradient */}
+            {/* Themed River Gradient */}
             <linearGradient id="riverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#0284C7" stopOpacity="0.95" />
+              <stop offset="0%" stopColor="var(--map-water)" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="var(--map-water-dark)" stopOpacity="0.95" />
             </linearGradient>
 
-            {/* Danger Flood Gradient */}
+            {/* Themed Danger Flood Gradient */}
             <radialGradient id="dangerFlood" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#EF4444" stopOpacity="0.55" />
-              <stop offset="70%" stopColor="#F87171" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--danger-badge)" stopOpacity="0.55" />
+              <stop offset="70%" stopColor="var(--danger-accent)" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="var(--danger-badge)" stopOpacity="0" />
             </radialGradient>
 
-            {/* Advisory Flood Gradient */}
+            {/* Themed Advisory Flood Gradient */}
             <radialGradient id="advisoryFlood" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.5" />
-              <stop offset="70%" stopColor="#FBBF24" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--advisory-badge)" stopOpacity="0.5" />
+              <stop offset="70%" stopColor="var(--advisory-accent)" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="var(--advisory-badge)" stopOpacity="0" />
             </radialGradient>
           </defs>
 
-          {/* Land / District background grid */}
-          <rect width="100" height="85" fill="#E8EDF2" />
+          {/* Themed Land / District background grid */}
+          <rect width="100" height="85" fill="var(--map-land)" />
 
           {/* Secondary road vectors */}
-          <line x1="0" y1="15" x2="100" y2="15" stroke="#CBD5E1" strokeWidth="1.2" />
-          <line x1="0" y1="36" x2="100" y2="36" stroke="#CBD5E1" strokeWidth="1.2" />
-          <line x1="0" y1="70" x2="100" y2="70" stroke="#CBD5E1" strokeWidth="1.2" />
-          <line x1="18" y1="0" x2="18" y2="85" stroke="#CBD5E1" strokeWidth="1.2" />
-          <line x1="75" y1="0" x2="75" y2="85" stroke="#CBD5E1" strokeWidth="1.2" />
+          <line x1="0" y1="15" x2="100" y2="15" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
+          <line x1="0" y1="36" x2="100" y2="36" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
+          <line x1="0" y1="70" x2="100" y2="70" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
+          <line x1="18" y1="0" x2="18" y2="85" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
+          <line x1="75" y1="0" x2="75" y2="85" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
 
           {/* Major Expressways / Arteries */}
           {/* Persiaran Kewajipan */}
-          <line x1="0" y1="50" x2="100" y2="50" stroke="#94A3B8" strokeWidth="3" />
-          <line x1="0" y1="50" x2="100" y2="50" stroke="#F8FAFC" strokeWidth="1.2" strokeDasharray="2 2" />
+          <line x1="0" y1="50" x2="100" y2="50" stroke="var(--map-road-major)" strokeWidth="3" />
+          <line x1="0" y1="50" x2="100" y2="50" stroke="var(--map-road-stripe)" strokeWidth="1.2" strokeDasharray="2 2" />
 
           {/* KESAS Expressway */}
-          <path d="M 0,28 Q 50,32 100,24" fill="none" stroke="#64748B" strokeWidth="3.2" />
-          <path d="M 0,28 Q 50,32 100,24" fill="none" stroke="#FEF08A" strokeWidth="1.2" />
+          <path d="M 0,28 Q 50,32 100,24" fill="none" stroke="var(--map-road-artery)" strokeWidth="3.2" />
+          <path d="M 0,28 Q 50,32 100,24" fill="none" stroke="var(--map-road-artery-stripe)" strokeWidth="1.2" />
 
           {/* Jalan Subang 1 */}
-          <line x1="48" y1="0" x2="48" y2="85" stroke="#94A3B8" strokeWidth="2.8" />
-          <line x1="48" y1="0" x2="48" y2="85" stroke="#F8FAFC" strokeWidth="1" strokeDasharray="2 2" />
+          <line x1="48" y1="0" x2="48" y2="85" stroke="var(--map-road-major)" strokeWidth="2.8" />
+          <line x1="48" y1="0" x2="48" y2="85" stroke="var(--map-road-stripe)" strokeWidth="1" strokeDasharray="2 2" />
 
           {/* Winding River (Sungai Klang / Basin) */}
           <path 
@@ -218,18 +218,18 @@ export const MapScreen: React.FC = () => {
           />
 
           {/* River Label */}
-          <text x="32" y="11" fill="#0369A1" fontSize="2.4" fontWeight="800" letterSpacing="0.4">
+          <text x="32" y="11" fill="var(--map-water-label)" fontSize="2.4" fontWeight="800" letterSpacing="0.4">
             ~ SUNGAI KLANG (RIVER BASIN) ~
           </text>
 
           {/* Road Name Labels */}
-          <text x="4" y="47.5" fill="#475569" fontSize="2.4" fontWeight="700">
+          <text x="4" y="47.5" fill="var(--map-label-secondary)" fontSize="2.4" fontWeight="700">
             Persiaran Kewajipan
           </text>
-          <text x="4" y="26" fill="#1E293B" fontSize="2.4" fontWeight="800">
+          <text x="4" y="26" fill="var(--map-label-primary)" fontSize="2.4" fontWeight="800">
             KESAS Expressway (E5)
           </text>
-          <text x="50" y="78" fill="#475569" fontSize="2.4" fontWeight="700">
+          <text x="50" y="78" fill="var(--map-label-secondary)" fontSize="2.4" fontWeight="700">
             Jalan Subang 1
           </text>
 
@@ -248,7 +248,7 @@ export const MapScreen: React.FC = () => {
                 cy={h.coords.y}
                 r={h.coords.radius}
                 fill="none"
-                stroke={h.severity === 'danger' ? '#EF4444' : '#F59E0B'}
+                stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
                 strokeWidth="1.2"
                 strokeDasharray="2 1.5"
               />
@@ -259,7 +259,7 @@ export const MapScreen: React.FC = () => {
                 y1={h.coords.y} 
                 x2={h.coords.x + 7} 
                 y2={h.coords.y} 
-                stroke="#DC2626" 
+                stroke="var(--danger-accent)" 
                 strokeWidth="2.8" 
                 strokeLinecap="round"
               />
@@ -271,15 +271,15 @@ export const MapScreen: React.FC = () => {
                 width="28"
                 height="4.8"
                 rx="2"
-                fill="#FEF2F2"
-                stroke="#EF4444"
+                fill="var(--danger-bg)"
+                stroke="var(--danger-border)"
                 strokeWidth="0.6"
               />
               <text 
                 x={h.coords.x} 
                 y={h.coords.y - 3.8} 
                 textAnchor="middle" 
-                fill="#991B1B" 
+                fill="var(--danger-text)" 
                 fontSize="2.4" 
                 fontWeight="800"
               >
@@ -294,7 +294,7 @@ export const MapScreen: React.FC = () => {
               <path
                 d={`M ${userCoord.x} ${userCoord.y} Q 36 56, ${selectedShelter.coords.x} ${selectedShelter.coords.y}`}
                 fill="none"
-                stroke="#0284C7"
+                stroke="var(--map-route)"
                 strokeWidth="2.4"
                 strokeDasharray="3 2"
                 strokeLinecap="round"
@@ -306,13 +306,13 @@ export const MapScreen: React.FC = () => {
                 width="22"
                 height="4.4"
                 rx="2.2"
-                fill="#0284C7"
+                fill="var(--map-route)"
               />
               <text
                 x="43"
                 y="55.2"
                 textAnchor="middle"
-                fill="#FFFFFF"
+                fill="var(--text-inverse)"
                 fontSize="2.2"
                 fontWeight="800"
               >
@@ -336,8 +336,8 @@ export const MapScreen: React.FC = () => {
                     cx={s.coords.x}
                     cy={s.coords.y}
                     r="6.8"
-                    fill="rgba(2, 132, 199, 0.22)"
-                    stroke="#0284C7"
+                    fill="var(--map-shelter-halo)"
+                    stroke="var(--brand-primary)"
                     strokeWidth="1.4"
                   />
                 )}
@@ -347,15 +347,15 @@ export const MapScreen: React.FC = () => {
                   cx={s.coords.x}
                   cy={s.coords.y}
                   r="4.2"
-                  fill="#059669"
-                  stroke="#FFFFFF"
+                  fill="var(--map-shelter-pin)"
+                  stroke="var(--bg-surface)"
                   strokeWidth="1.2"
                 />
                 <text
                   x={s.coords.x}
                   y={s.coords.y + 1.2}
                   textAnchor="middle"
-                  fill="#FFFFFF"
+                  fill="var(--text-inverse)"
                   fontSize="3.4"
                   fontWeight="bold"
                 >
@@ -369,15 +369,15 @@ export const MapScreen: React.FC = () => {
                   width="32"
                   height="4.4"
                   rx="2"
-                  fill={isSelected ? '#0284C7' : '#FFFFFF'}
-                  stroke={isSelected ? '#0284C7' : '#CBD5E1'}
+                  fill={isSelected ? 'var(--brand-primary)' : 'var(--bg-surface)'}
+                  stroke={isSelected ? 'var(--brand-primary)' : 'var(--border-strong)'}
                   strokeWidth="0.6"
                 />
                 <text
                   x={s.coords.x}
                   y={s.coords.y + 9.2}
                   textAnchor="middle"
-                  fill={isSelected ? '#FFFFFF' : '#0F172A'}
+                  fill={isSelected ? 'var(--text-inverse)' : 'var(--text-primary)'}
                   fontSize="2.1"
                   fontWeight="700"
                 >
@@ -394,8 +394,9 @@ export const MapScreen: React.FC = () => {
               cx={userCoord.x}
               cy={userCoord.y}
               r="6.5"
-              fill="rgba(2, 132, 199, 0.25)"
-              stroke="#38BDF8"
+              fill="var(--brand-surface)"
+              fillOpacity="0.4"
+              stroke="var(--brand-accent)"
               strokeWidth="0.8"
             />
             {/* Core Pin */}
@@ -403,15 +404,15 @@ export const MapScreen: React.FC = () => {
               cx={userCoord.x}
               cy={userCoord.y}
               r="3.8"
-              fill="#0284C7"
-              stroke="#FFFFFF"
+              fill="var(--map-user-pin)"
+              stroke="var(--bg-surface)"
               strokeWidth="1.4"
             />
             <circle
               cx={userCoord.x}
               cy={userCoord.y}
               r="1.6"
-              fill="#FFFFFF"
+              fill="var(--text-inverse)"
             />
 
             {/* User Label */}
@@ -421,13 +422,13 @@ export const MapScreen: React.FC = () => {
               width="24"
               height="4.2"
               rx="2.1"
-              fill="#0F172A"
+              fill="var(--text-primary)"
             />
             <text
               x={userCoord.x}
               y={userCoord.y - 5.6}
               textAnchor="middle"
-              fill="#FFFFFF"
+              fill="var(--text-inverse)"
               fontSize="2.2"
               fontWeight="800"
             >
@@ -440,15 +441,23 @@ export const MapScreen: React.FC = () => {
         {/* Honest labelling of what is simulated */}
         <div style={{
           position: 'absolute', top: useGoogle ? 48 : 8, right: 8, zIndex: 5,
-          background: 'rgba(255,255,255,.92)', color: '#475569', fontSize: 10, fontWeight: 700,
-          padding: '3px 8px', borderRadius: 6, boxShadow: '0 1px 3px rgba(0,0,0,.2)'
+          background: 'var(--bg-surface)', color: 'var(--text-muted)', fontSize: 10, fontWeight: 700,
+          padding: '3px 8px', borderRadius: 6, boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)'
         }}>
           {language === 'bm' ? 'Pusat & bahaya: data demo' : 'Shelters & hazards: demo data'}
         </div>
 
         {/* 3. Floating Shelter Drawer at Bottom */}
         {selectedShelter && (
-          <div className={`floating-shelter-sheet ${isSheetMinimized ? 'floating-shelter-sheet--minimized' : ''}`}>
+          <>
+            {!isSheetMinimized && (
+              <div 
+                className="map-sheet-backdrop" 
+                onClick={() => setIsSheetMinimized(true)}
+                aria-hidden="true" 
+              />
+            )}
+            <div className={`floating-shelter-sheet ${isSheetMinimized ? 'floating-shelter-sheet--minimized' : ''}`}>
             {/* Top row with toggle minimize button */}
             <div className="shelter-sheet-top-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -458,8 +467,8 @@ export const MapScreen: React.FC = () => {
                     fontWeight: 800,
                     padding: '2px 7px',
                     borderRadius: 'var(--radius-sm)',
-                    background: selectedShelter.status === 'open' ? '#D1FAE5' : '#FEF3C7',
-                    color: selectedShelter.status === 'open' ? '#065F46' : '#92400E'
+                    background: selectedShelter.status === 'open' ? 'var(--safe-bg)' : 'var(--advisory-bg)',
+                    color: selectedShelter.status === 'open' ? 'var(--safe-text)' : 'var(--advisory-text)'
                   }}
                 >
                   {selectedShelter.status === 'open' ? t.openStatus : t.limitedStatus}
@@ -500,17 +509,17 @@ export const MapScreen: React.FC = () => {
                 <div className="shelter-sheet-sub">
                   {selectedShelter.address}
                   {useGoogle && elevation.shelter !== null && (
-                    <div style={{ marginTop: 2, fontWeight: 700, color: '#0369A1' }}>
+                    <div style={{ marginTop: 2, fontWeight: 700, color: 'var(--brand-primary)' }}>
                       ⛰️ {language === 'bm' ? 'Altitud' : 'Elevation'}: {Math.round(elevation.shelter)} m
                       {elevation.user !== null && (
-                        <span style={{ color: elevation.shelter >= elevation.user ? '#059669' : '#D97706' }}>
+                        <span style={{ color: elevation.shelter >= elevation.user ? 'var(--safe-accent)' : 'var(--advisory-accent)' }}>
                           {' '}({elevation.shelter >= elevation.user ? '▲' : '▼'} {Math.abs(Math.round(elevation.shelter - elevation.user))} m {language === 'bm' ? 'berbanding anda' : 'vs you'})
                         </span>
                       )}
                     </div>
                   )}
                   {useGoogle && route && (
-                    <div style={{ marginTop: 2, fontSize: 11, color: '#92400E' }}>
+                    <div style={{ marginTop: 2, fontSize: 11, color: 'var(--advisory-text)' }}>
                       ⚠️ {language === 'bm'
                         ? 'Laluan Google tidak mengelak kawasan banjir. Semak keadaan jalan sebelum bergerak.'
                         : 'Google route does not avoid flooded areas. Check road conditions before moving.'}
@@ -535,7 +544,7 @@ export const MapScreen: React.FC = () => {
                       className="capacity-bar-fill"
                       style={{
                         width: `${(selectedShelter.capacityCurrent / selectedShelter.capacityTotal) * 100}%`,
-                        background: selectedShelter.capacityCurrent / selectedShelter.capacityTotal > 0.8 ? '#F59E0B' : '#10B981'
+                        background: selectedShelter.capacityCurrent / selectedShelter.capacityTotal > 0.8 ? 'var(--advisory-badge)' : 'var(--safe-badge)'
                       }}
                     />
                   </div>
@@ -554,7 +563,7 @@ export const MapScreen: React.FC = () => {
                   )}
                   {selectedShelter.amenities.includes('medical') && (
                     <span className="amenity-badge">
-                      <Activity size={12} color="#DC2626" /> First-Aid
+                      <Activity size={12} color="var(--danger-accent)" /> First-Aid
                     </span>
                   )}
                   {selectedShelter.amenities.includes('power') && (
@@ -590,7 +599,8 @@ export const MapScreen: React.FC = () => {
               </a>
             </div>
           </div>
-        )}
+        </>
+      )}
       </div>
     </div>
   );
