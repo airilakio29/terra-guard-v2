@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShieldAlert, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { ShieldAlert, Volume2, VolumeX, Sparkles, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 export const Header: React.FC = () => {
   const { 
@@ -12,6 +13,7 @@ export const Header: React.FC = () => {
     toggleSound, 
     t 
   } = useApp();
+  const { logout } = useAuth();
 
   return (
     <>
@@ -50,6 +52,16 @@ export const Header: React.FC = () => {
               BM
             </button>
           </div>
+
+          <button
+            className="lang-btn"
+            onClick={() => void logout()}
+            title="Log Out"
+            style={{ padding: '6px', marginLeft: '4px' }}
+            aria-label="Log Out"
+          >
+            <LogOut size={16} color="#F87171" />
+          </button>
         </div>
       </header>
 

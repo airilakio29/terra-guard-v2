@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { StatusScreen } from './components/StatusScreen';
@@ -6,7 +7,10 @@ import { MapScreen } from './components/MapScreen';
 import { AssistantScreen } from './components/AssistantScreen';
 import { SosScreen } from './components/SosScreen';
 import { BottomNav } from './components/BottomNav';
+import Auth from './components/Auth';
 import { Smartphone, LayoutDashboard, Maximize2 } from 'lucide-react';
+
+// ─── Dashboard Layout (authenticated users only) ─────────────────────────────
 
 const MainLayout: React.FC = () => {
   const { activeTab } = useApp();
@@ -41,7 +45,7 @@ const MainLayout: React.FC = () => {
       {/* Main App Container */}
       <div className={`app-container app-container--${viewMode}`}>
         <Header />
-        
+
         {activeTab === 'status' && <StatusScreen />}
         {activeTab === 'map' && <MapScreen />}
         {activeTab === 'assistant' && <AssistantScreen />}
@@ -53,10 +57,42 @@ const MainLayout: React.FC = () => {
   );
 };
 
-export default function App() {
+// ─── Root with auth gating ───────────────────────────────────────────────────
+
+const AppRoot: React.FC = () => {
+  const { firebaseUser, isGuest, authLoading } = useAuth();
+
+  // While Firebase resolves the initial auth state, show nothing (or a splash)
+  if (authLoading && !isGuest) {
+    return (
+      <div className="auth-page">
+        <div className="auth-loading-splash">
+          <div className="auth-logo" style={{ margin: '0 auto 16px' }}>
+            🛡️
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading TerraGuard…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not signed in and not guest → show the Auth page
+  if (!firebaseUser && !isGuest) {
+    return <Auth />;
+  }
+
+  // Signed in or Guest → show the full app
   return (
     <AppProvider>
       <MainLayout />
     </AppProvider>
+  );
+};
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoot />
+    </AuthProvider>
   );
 }
