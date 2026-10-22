@@ -15,7 +15,15 @@ import {
   LocateFixed,
   Wind,
   Search,
-  ChevronDown
+  ChevronDown,
+  Radio,
+  Navigation,
+  X,
+  Waves,
+  Backpack,
+  Car,
+  Zap,
+  Home
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LiveWeatherCard } from './LiveWeatherCard';
@@ -67,7 +75,32 @@ export const StatusScreen: React.FC = () => {
 
   return (
     <div className="screen-scroll-container">
-      {/* Unified Location & Live GPS Strip */}
+      {/* ─── 0. Civil Defense Tactical Broadcast Bar (NADMA / METMalaysia) ───── */}
+      <div className={`civil-broadcast-bar civil-broadcast-bar--${currentScenario.riskLevel}`}>
+        <div className="civil-broadcast-bar__badge">
+          <span className="tactical-ping-dot" />
+          <span className="tabular-mono">
+            {isDanger ? 'RED ALERT' : isAdvisory ? 'ADVISORY' : 'EOC LIVE'}
+          </span>
+        </div>
+        <div className="civil-broadcast-bar__ticker">
+          <span>
+            {isDanger
+              ? (bm
+                  ? `AMARAN KRITIKAL: ${currentScenario.locationName} — Sila bersedia untuk berpindah ke PPS terdekat (${nearestShelter.nameBm}).`
+                  : `CRITICAL ALERT: ${currentScenario.locationName} — Prepare for immediate evacuation to ${nearestShelter.name}.`)
+              : isAdvisory
+                ? (bm
+                    ? `AWAS TELEMETRI: Pantau paras air & bacaan IPU semasa di sekitar ${currentScenario.locationName}.`
+                    : `TELEMETRY WATCH: Monitor water levels & air quality index around ${currentScenario.locationName}.`)
+                : (bm
+                    ? `METMALAYSIA / NADMA: Tiada amaran cuaca buruk aktif di ${currentScenario.locationName}. Semua PPS dalam mod sedia.`
+                    : `METMALAYSIA / NADMA: No severe weather warnings active in ${currentScenario.locationName}. All shelters on standby.`)}
+          </span>
+        </div>
+      </div>
+
+      {/* ─── 1. Unified Location & Live GPS Telemetry Strip ──────────────────── */}
       <div className="location-strip" style={{ flexWrap: 'wrap', gap: '10px' }}>
         <div className="location-strip__info" style={{ minWidth: 0 }}>
           <MapPin size={18} className="location-strip__pin" />
@@ -75,20 +108,18 @@ export const StatusScreen: React.FC = () => {
             <div className="location-strip__name" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <span>{currentScenario.locationName}</span>
               <span
+                className="tactical-gps-pill"
                 style={{
-                  fontSize: '10px',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: 'var(--radius-full)',
                   background: isGpsLocked ? 'var(--safe-bg)' : 'var(--brand-surface)',
                   color: isGpsLocked ? 'var(--safe-text)' : 'var(--brand-primary)',
                   border: `1px solid ${isGpsLocked ? 'var(--safe-border)' : 'var(--brand-border)'}`
                 }}
               >
-                {isGpsLocked ? (bm ? '📡 GPS Aktif' : '📡 Live GPS') : (bm ? '📍 Lalai' : '📍 Default')}
+                {isGpsLocked ? <Radio size={10} /> : <Navigation size={10} />}
+                <span>{isGpsLocked ? (bm ? 'GPS Aktif' : 'Live GPS') : (bm ? 'Mod Lalai' : 'Default')}</span>
               </span>
             </div>
-            <div className="location-strip__area">
+            <div className="location-strip__area tabular-mono">
               {currentScenario.locationArea} · {currentScenario.lat.toFixed(4)}°N, {currentScenario.lon.toFixed(4)}°E
             </div>
           </div>
@@ -132,13 +163,15 @@ export const StatusScreen: React.FC = () => {
                 type="button"
                 className="location-strip__refresh"
                 onClick={() => setShowSearch(false)}
+                aria-label={bm ? 'Tutup carian' : 'Close search'}
               >
-                ✕
+                <X size={13} />
               </button>
             </form>
           ) : (
             <>
               <button
+                type="button"
                 className="location-strip__refresh"
                 onClick={locateMe}
                 disabled={locating}
@@ -163,6 +196,7 @@ export const StatusScreen: React.FC = () => {
               </button>
 
               <button
+                type="button"
                 className="location-strip__refresh"
                 onClick={() => setShowSearch(true)}
                 title={bm ? 'Semak bandar lain di Malaysia' : 'Check another town in Malaysia'}
@@ -172,7 +206,8 @@ export const StatusScreen: React.FC = () => {
               </button>
 
               <button
-                className="location-strip__refresh"
+                type="button"
+                className="location-strip__refresh tabular-mono"
                 onClick={refreshFeeds}
                 disabled={isRefreshing}
                 title={t.pullToRefresh}
@@ -182,7 +217,7 @@ export const StatusScreen: React.FC = () => {
                   {isRefreshing
                     ? t.refreshing
                     : weather
-                      ? `${bm ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
+                      ? `${bm ? 'Kemas kini' : 'Synced'} ${new Date(weather.fetchedAt).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
                       : t.updatedAgo}
                 </span>
               </button>
@@ -191,9 +226,9 @@ export const StatusScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Responsive Dashboard Grid (Single column in Mobile View, 2 columns in Dashboard/Full View) */}
+      {/* ─── Responsive Dashboard Grid ───────────────────────────────────────── */}
       <div className="dashboard-grid">
-        {/* Left Column: Status Card + Primary Action + Mini Map Snapshot */}
+        {/* Left Column: Status Card + Primary Action + Live Spatial Radar */}
         <div className="dashboard-column">
           {/* 1. Main Real-Life Risk Status Card */}
           <div className={`status-card status-card--${currentScenario.riskLevel}`}>
@@ -221,7 +256,7 @@ export const StatusScreen: React.FC = () => {
                     </span>
                     {weather && (
                       <span
-                        className="status-card__badge-pill"
+                        className="status-card__badge-pill tabular-mono"
                         style={{
                           marginBottom: 0,
                           display: 'inline-flex',
@@ -276,6 +311,12 @@ export const StatusScreen: React.FC = () => {
             onClick={handlePrimaryAction}
             role="button"
             tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                handlePrimaryAction();
+              }
+            }}
           >
             <div key={`${currentScenario.id}-${currentScenario.locationName}-${language}`} className="primary-action-card__content cross-fade-text">
               <div className="primary-action-card__icon">
@@ -285,7 +326,7 @@ export const StatusScreen: React.FC = () => {
                 <div className="primary-action-card__title">
                   {bm ? currentScenario.primaryActionBm : currentScenario.primaryActionEn}
                 </div>
-                <div className="primary-action-card__subtitle">
+                <div className="primary-action-card__subtitle tabular-mono">
                   {bm ? currentScenario.primaryActionSubtitleBm : currentScenario.primaryActionSubtitleEn}
                 </div>
               </div>
@@ -293,80 +334,84 @@ export const StatusScreen: React.FC = () => {
             <ChevronRight size={20} className="primary-action-card__arrow" />
           </div>
 
-          {/* 3. Live Spatial Radar Preview Card */}
+          {/* 3. Live Spatial Radar Preview Card with Active Sonar Beacon */}
           <div
-            className="section-card"
+            className="section-card radar-preview-card"
             style={{ cursor: 'pointer', background: 'var(--bg-surface)' }}
             onClick={() => setActiveTab('map')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setActiveTab('map');
+              }
+            }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div className="section-title" style={{ marginBottom: 0 }}>
                 <Compass size={16} color="var(--brand-primary)" />
-                <span>{bm ? 'Peta Pantas Situasi' : 'Live Situation Radar'}</span>
+                <span>{bm ? 'Radar Situasi & PPS Terdekat' : 'Live Situation & Shelter Radar'}</span>
               </div>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
                 {bm ? 'Buka Peta Penuh' : 'Open Full Map'} <ChevronRight size={14} />
               </span>
             </div>
 
-            <div
-              style={{
-                position: 'relative',
-                height: '110px',
-                borderRadius: 'var(--radius-md)',
-                overflow: 'hidden',
-                background: 'var(--map-land)',
-                border: '1px solid var(--border-subtle)'
-              }}
-            >
+            <div className="radar-viewport">
               <svg width="100%" height="100%" viewBox="0 0 100 35" preserveAspectRatio="none">
+                {/* Tactical Coordinate Grid Lines */}
+                <line x1="0" y1="10" x2="100" y2="10" stroke="var(--border-subtle)" strokeWidth="0.3" strokeDasharray="1 1" />
+                <line x1="0" y1="25" x2="100" y2="25" stroke="var(--border-subtle)" strokeWidth="0.3" strokeDasharray="1 1" />
+                <line x1="25" y1="0" x2="25" y2="35" stroke="var(--border-subtle)" strokeWidth="0.3" strokeDasharray="1 1" />
+                <line x1="50" y1="0" x2="50" y2="35" stroke="var(--border-subtle)" strokeWidth="0.3" strokeDasharray="1 1" />
+                <line x1="75" y1="0" x2="75" y2="35" stroke="var(--border-subtle)" strokeWidth="0.3" strokeDasharray="1 1" />
+
+                {/* Roads */}
                 <line x1="0" y1="18" x2="100" y2="18" stroke="var(--map-road-secondary)" strokeWidth="1.5" />
                 <line x1="30" y1="0" x2="30" y2="35" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
                 <line x1="70" y1="0" x2="70" y2="35" stroke="var(--map-road-secondary)" strokeWidth="1.2" />
 
                 {/* River */}
-                <path d="M0,8 Q50,15 100,6" fill="none" stroke="var(--map-water)" strokeWidth="4" />
+                <path d="M0,8 Q50,15 100,6" fill="none" stroke="var(--map-water)" strokeWidth="3.5" />
 
                 {/* Hazard zone */}
                 {currentScenario.hazards.length > 0 && (
                   <circle cx="55" cy="18" r="8" fill="var(--danger-bg)" stroke="var(--danger-badge)" strokeWidth="0.8" />
                 )}
 
-                {/* User Beacon */}
+                {/* Route */}
+                <path d="M 28 22 Q 48 26, 75 14" fill="none" stroke="var(--map-route)" strokeWidth="1.1" strokeDasharray="2 1" />
+
+                {/* Animated Sonar Rings on User GPS Beacon */}
+                <circle cx="28" cy="22" r="3" fill="none" stroke="var(--map-user-pin)" strokeWidth="0.6" className="svg-sonar-ring" />
                 <circle cx="28" cy="22" r="3" fill="var(--map-user-pin)" stroke="var(--bg-surface)" strokeWidth="1" />
 
-                {/* Nearest Shelter */}
+                {/* Nearest Shelter Pin + Pulse */}
+                <circle cx="75" cy="14" r="3.5" fill="none" stroke="var(--map-shelter-pin)" strokeWidth="0.5" className="svg-sonar-ring svg-sonar-ring--delayed" />
                 <circle cx="75" cy="14" r="3.5" fill="var(--map-shelter-pin)" stroke="var(--bg-surface)" strokeWidth="1" />
                 <text x="75" y="15.2" textAnchor="middle" fill="var(--on-vivid)" fontSize="2.8" fontWeight="bold">H</text>
-
-                {/* Route */}
-                <path d="M 28 22 Q 48 26, 75 14" fill="none" stroke="var(--map-route)" strokeWidth="1" strokeDasharray="2 1" />
               </svg>
 
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '6px',
-                  left: '8px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  background: 'var(--bg-surface)',
-                  padding: '2px 6px',
-                  borderRadius: '4px',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              >
-                📍 {bm ? `PPS Terdekat: ${nearestShelter.distanceKm} km` : `Nearest Shelter: ${nearestShelter.distanceKm} km`}
+              <div className="radar-hud-pill radar-hud-pill--left tabular-mono">
+                <Navigation size={10} color="var(--brand-primary)" />
+                <span>
+                  {bm
+                    ? `PPS: ${nearestShelter.distanceKm} km · ${nearestShelter.driveMinutes}m pandu`
+                    : `PPS: ${nearestShelter.distanceKm} km · ${nearestShelter.driveMinutes}m drive`}
+                </span>
+              </div>
+
+              <div className="radar-hud-pill radar-hud-pill--right tabular-mono">
+                <span>{nearestShelter.capacityCurrent}/{nearestShelter.capacityTotal} CAP</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Live Weather + IPU Haze + Hazards Nearby + AI Quick Guidance + Emergency SOS */}
+        {/* Right Column: Live Weather Bento + Hazards + AI Tactical Chips + SOS Strip */}
         <div className="dashboard-column">
-          {/* Live Weather & Malaysian IPU Haze Monitor */}
+          {/* Live Weather & Malaysian IPU Haze Monitor (4-Tile Bento Grid) */}
           <LiveWeatherCard />
 
           {/* 4. Active Hazards OR All-Clear Confirmation */}
@@ -395,13 +440,15 @@ export const StatusScreen: React.FC = () => {
                       {bm ? h.descriptionBm : h.descriptionEn}
                     </div>
                     {h.waterDepthMeters && (
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-accent)', marginTop: '4px' }}>
-                        ⚠️ {t.waterDepth}: ~{h.waterDepthMeters}m
+                      <div className="tabular-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: 'var(--danger-accent)', marginTop: '6px' }}>
+                        <Waves size={12} />
+                        <span>{t.waterDepth}: ~{h.waterDepthMeters}m</span>
                       </div>
                     )}
                     {h.ipuValue && (
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--advisory-accent)', marginTop: '4px' }}>
-                        🌫️ {bm ? 'Bacaan IPU Semasa' : 'Live IPU Reading'}: {h.ipuValue}
+                      <div className="tabular-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: 'var(--advisory-accent)', marginTop: '6px' }}>
+                        <Wind size={12} />
+                        <span>{bm ? 'Bacaan IPU Semasa' : 'Live IPU Reading'}: {h.ipuValue}</span>
                       </div>
                     )}
                   </div>
@@ -433,7 +480,7 @@ export const StatusScreen: React.FC = () => {
             </div>
           )}
 
-          {/* 5. 1-Tap AI Safety Guidance Chips */}
+          {/* 5. 1-Tap AI Safety Guidance Chips (Crisp SVG Icons — Zero Emojis) */}
           <div className="section-card">
             <div className="section-title">
               <MessageSquareQuote size={16} color="var(--brand-primary)" />
@@ -441,31 +488,55 @@ export const StatusScreen: React.FC = () => {
             </div>
             <div className="chips-container">
               <button
+                type="button"
                 className="chip-button"
                 onClick={() => askAssistantDirectly('pack')}
               >
-                <span>🎒 {t.chipPack}</span>
+                <span className="chip-button__left">
+                  <span className="chip-icon-box">
+                    <Backpack size={14} />
+                  </span>
+                  <span>{t.chipPack}</span>
+                </span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
               <button
+                type="button"
                 className="chip-button"
                 onClick={() => askAssistantDirectly('drive')}
               >
-                <span>🚗 {t.chipDrive}</span>
+                <span className="chip-button__left">
+                  <span className="chip-icon-box">
+                    <Car size={14} />
+                  </span>
+                  <span>{t.chipDrive}</span>
+                </span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
               <button
+                type="button"
                 className="chip-button"
                 onClick={() => askAssistantDirectly('power')}
               >
-                <span>⚡ {t.chipPower}</span>
+                <span className="chip-button__left">
+                  <span className="chip-icon-box">
+                    <Zap size={14} />
+                  </span>
+                  <span>{t.chipPower}</span>
+                </span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
               <button
+                type="button"
                 className="chip-button"
                 onClick={() => askAssistantDirectly('trapped')}
               >
-                <span>🏠 {t.chipTrapped}</span>
+                <span className="chip-button__left">
+                  <span className="chip-icon-box">
+                    <Home size={14} />
+                  </span>
+                  <span>{t.chipTrapped}</span>
+                </span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
             </div>
@@ -477,6 +548,12 @@ export const StatusScreen: React.FC = () => {
             onClick={() => setActiveTab('sos')}
             role="button"
             tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setActiveTab('sos');
+              }
+            }}
           >
             <div className="sos-banner-strip__text">
               <div className="sos-banner-strip__title">
@@ -487,7 +564,7 @@ export const StatusScreen: React.FC = () => {
                 {t.sosSubtext}
               </div>
             </div>
-            <button className="sos-banner-strip__btn">
+            <button type="button" className="sos-banner-strip__btn tabular-mono">
               {t.callNow} (999)
             </button>
           </div>

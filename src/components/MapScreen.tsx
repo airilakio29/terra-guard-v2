@@ -12,7 +12,10 @@ import {
   Crosshair,
   ChevronUp,
   ChevronDown,
-  LocateFixed
+  LocateFixed,
+  Radio,
+  Mountain,
+  AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { ShelterInfo } from '../types';
@@ -273,7 +276,7 @@ export const MapScreen: React.FC = () => {
                   fontSize="2.4"
                   fontWeight="800"
                 >
-                  ⚠️ {h.ipuValue ? `IPU: ${h.ipuValue}` : h.waterDepthMeters ? `Water: ${h.waterDepthMeters}m` : 'Hazard Zone'}
+                  ! {h.ipuValue ? `IPU: ${h.ipuValue}` : h.waterDepthMeters ? `Water: ${h.waterDepthMeters}m` : 'Hazard Zone'}
                 </text>
               </g>
             ))}
@@ -304,7 +307,7 @@ export const MapScreen: React.FC = () => {
                   fontSize="2.2"
                   fontWeight="800"
                 >
-                  🚶 {selectedShelter.walkMinutes} min walk ({selectedShelter.distanceKm}km)
+                  {selectedShelter.walkMinutes}m walk ({selectedShelter.distanceKm}km)
                 </text>
               </g>
             )}
@@ -412,7 +415,7 @@ export const MapScreen: React.FC = () => {
                 fontSize="2.2"
                 fontWeight="800"
               >
-                📍 {t.youAreHere}
+                {t.youAreHere}
               </text>
             </g>
           </svg>
@@ -420,6 +423,7 @@ export const MapScreen: React.FC = () => {
 
         {/* Live Telemetry Badge */}
         <div
+          className="tabular-mono"
           style={{
             position: 'absolute',
             top: useGoogle ? 48 : 8,
@@ -438,11 +442,8 @@ export const MapScreen: React.FC = () => {
             gap: '6px'
           }}
         >
-          <span>
-            {language === 'bm'
-              ? `📡 GPS: ${currentScenario.locationName}`
-              : `📡 GPS: ${currentScenario.locationName}`}
-          </span>
+          <Radio size={11} color="var(--brand-primary)" />
+          <span>GPS: {currentScenario.locationName}</span>
           {weather && (
             <span style={{ color: 'var(--brand-primary)', fontWeight: 800 }}>
               · IPU {weather.ipuIndex}
@@ -476,7 +477,7 @@ export const MapScreen: React.FC = () => {
                   >
                     {selectedShelter.status === 'open' ? t.openStatus : t.limitedStatus}
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-primary)' }}>
+                  <span className="tabular-mono" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--brand-primary)' }}>
                     {route
                       ? `${(route.meters / 1000).toFixed(2)} km • ${Math.max(1, Math.round(route.seconds / 60))} ${t.walkMin}`
                       : `${selectedShelter.distanceKm} km • ${selectedShelter.walkMinutes} ${t.walkMin}`}
@@ -502,20 +503,24 @@ export const MapScreen: React.FC = () => {
                   <div className="shelter-sheet-sub">
                     {selectedShelter.address}
                     {useGoogle && elevation.shelter !== null && (
-                      <div style={{ marginTop: 2, fontWeight: 700, color: 'var(--brand-primary)' }}>
-                        ⛰️ {language === 'bm' ? 'Altitud' : 'Elevation'}: {Math.round(elevation.shelter)} m
+                      <div className="tabular-mono" style={{ marginTop: 4, fontWeight: 700, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        <Mountain size={12} />
+                        <span>{language === 'bm' ? 'Altitud' : 'Elevation'}: {Math.round(elevation.shelter)} m</span>
                         {elevation.user !== null && (
                           <span style={{ color: elevation.shelter >= elevation.user ? 'var(--safe-accent)' : 'var(--advisory-accent)' }}>
-                            {' '}({elevation.shelter >= elevation.user ? '▲' : '▼'} {Math.abs(Math.round(elevation.shelter - elevation.user))} m {language === 'bm' ? 'berbanding anda' : 'vs you'})
+                            ({elevation.shelter >= elevation.user ? '▲' : '▼'} {Math.abs(Math.round(elevation.shelter - elevation.user))} m {language === 'bm' ? 'berbanding anda' : 'vs you'})
                           </span>
                         )}
                       </div>
                     )}
                     {useGoogle && route && (
-                      <div style={{ marginTop: 2, fontSize: 11, color: 'var(--advisory-text)' }}>
-                        ⚠️ {language === 'bm'
-                          ? 'Laluan Google tidak mengelak kawasan banjir. Semak keadaan jalan sebelum bergerak.'
-                          : 'Google route does not avoid flooded areas. Check road conditions before moving.'}
+                      <div style={{ marginTop: 4, fontSize: 11, color: 'var(--advisory-text)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+                        <span>
+                          {language === 'bm'
+                            ? 'Laluan Google tidak mengelak kawasan banjir. Semak keadaan jalan sebelum bergerak.'
+                            : 'Google route does not avoid flooded areas. Check road conditions before moving.'}
+                        </span>
                       </div>
                     )}
                   </div>

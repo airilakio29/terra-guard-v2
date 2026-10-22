@@ -1,6 +1,7 @@
 /* Terra Guard V2 — Civilian Disaster Companion Design System */
 :root {
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   
   /* Canvas & Neutral Tones */
   --bg-canvas: #F8FAFC;
@@ -4993,4 +4994,740 @@ body,
   gap: 10px;
   border-top: 1px solid var(--border-subtle);
   padding-top: 14px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   21st.DEV TACTICAL CIVILIAN UTILITY & EOC DESIGN UPGRADES (ANTI-AI-SLOP)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Tabular Monospace Typography for Live Telemetry ──────────────────── */
+.tabular-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ─── 2. Zero-GPU-Drain Tactical Atmosphere Grid (Replaces Particle Slop) ── */
+.tactical-atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.35;
+}
+
+.tactical-atmosphere__grid {
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(to right, var(--border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-subtle) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 15%, var(--text-primary) 20%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 15%, var(--text-primary) 20%, transparent 80%);
+}
+
+/* ─── 3. Live Sonar & Beacon Ping Indicators ──────────────────────────────── */
+@keyframes tacticalPulseRing {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(2.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.35);
+    opacity: 0;
+  }
+}
+
+@keyframes svgSonarExpand {
+  0% {
+    r: 3px;
+    opacity: 0.9;
+  }
+  100% {
+    r: 9.5px;
+    opacity: 0;
+  }
+}
+
+.tactical-ping-dot {
+  position: relative;
+  display: inline-flex;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.tactical-ping-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  animation: tacticalPulseRing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.tactical-ping-dot--live {
+  color: var(--danger-accent);
+}
+
+.svg-sonar-ring {
+  animation: svgSonarExpand 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.svg-sonar-ring--delayed {
+  animation-delay: 1.1s;
+}
+
+/* ─── 4. Civil Defense Broadcast Bar (NADMA / METMalaysia Ticker) ─────────── */
+.civil-broadcast-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.civil-broadcast-bar--safe {
+  border-color: var(--safe-border);
+  background: var(--safe-bg);
+  color: var(--safe-text);
+}
+
+.civil-broadcast-bar--advisory {
+  border-color: var(--advisory-border);
+  background: var(--advisory-bg);
+  color: var(--advisory-text);
+}
+
+.civil-broadcast-bar--danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.civil-broadcast-bar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid currentColor;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.civil-broadcast-bar__ticker {
+  font-weight: 600;
+  min-width: 0;
+  flex: 1;
+}
+
+.tactical-gps-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+/* ─── 5. Live Situation Radar Viewport & HUD Pills ────────────────────────── */
+.radar-viewport {
+  position: relative;
+  height: 118px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--map-land);
+  border: 1px solid var(--border-strong);
+}
+
+.radar-hud-pill {
+  position: absolute;
+  bottom: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.radar-hud-pill--left {
+  left: 8px;
+}
+
+.radar-hud-pill--right {
+  right: 8px;
+  color: var(--brand-primary);
+}
+
+/* ─── 6. Tactile 1-Tap AI Guidance Chips (Zero Emojis) ────────────────────── */
+.chip-button__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.chip-icon-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--brand-surface);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ─── 7. Apple Weather-Style 4-Tile Tactical Bento Telemetry Grid ─────────── */
+.weather-bento-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.weather-bento-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weather-bento-hero__icon {
+  margin: -6px;
+}
+
+.weather-bento-hero__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.weather-feels-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.weather-outlook-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
+.tactical-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tactical-bento-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 10px 11px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.tactical-bento-tile:hover {
+  border-color: var(--border-strong);
+}
+
+.tactical-bento-tile__head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tactical-bento-tile__value {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.tactical-bento-tile__value small {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.tactical-bento-tile__sub {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.tactical-bento-tile__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.tactical-mini-meter {
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.tactical-mini-meter__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
+}
+
+.tactical-micro-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.tactical-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.tactical-tag--brand {
+  background: var(--brand-surface);
+  color: var(--brand-primary);
+  border-color: var(--brand-border);
+}
+
+.tactical-inline-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--advisory-bg);
+  color: var(--advisory-text);
+  border: 1px solid var(--advisory-border);
+  font-weight: 600;
+}
+
+/* ─── 8. Tactile Hold-to-Activate 3-Second Emergency SOS Module ───────────── */
+.sos-tactical-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--danger-border);
+  box-shadow: var(--shadow-md);
+}
+
+.sos-tactical-hero--triggered {
+  background: var(--danger-bg);
+  border-color: var(--danger-accent);
+}
+
+.sos-tactical-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tactical-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+}
+
+.tactical-badge--danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+
+.sos-tactical-hero__code {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.sos-hold-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.sos-hold-ring-wrapper {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sos-hold-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sos-sonar-wave {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  border: 2px solid var(--danger-accent);
+  pointer-events: none;
+  animation: tacticalPulseRing 1.3s ease-out infinite;
+}
+
+.sos-sonar-wave--2 {
+  animation-delay: 0.45s;
+}
+
+.sos-hold-trigger-btn {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid var(--danger-border);
+  background: var(--danger-accent);
+  color: var(--on-vivid);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-spring), background var(--transition-fast);
+}
+
+.sos-hold-trigger-btn:hover {
+  transform: scale(1.03);
+}
+
+.sos-hold-trigger-btn.is-holding,
+.sos-hold-trigger-btn:active {
+  transform: scale(0.93);
+  background: var(--danger-text);
+}
+
+.sos-hold-trigger-btn__label {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.sos-hold-trigger-btn__sub {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+}
+
+.sos-hold-instructions__title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sos-hold-instructions__desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  max-width: 340px;
+  margin-top: 2px;
+}
+
+.sos-dispatch-unlocked {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--danger-border);
+}
+
+.sos-dispatch-unlocked__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sos-dispatch-unlocked__title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--danger-accent);
+}
+
+.sos-dispatch-unlocked__subtitle {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.sos-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sos-dispatch-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.sos-primary-dial-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--danger-accent);
+  color: var(--on-vivid);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.sos-secondary-dial-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  font-size: 12.5px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.sos-telemetry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.sos-telemetry-bar__left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sos-telemetry-bar__label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.sos-telemetry-bar__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--brand-surface);
+  color: var(--brand-primary);
+  border: 1px solid var(--brand-border);
+  font-size: 9.5px;
+}
+
+.sos-telemetry-bar__coords {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sos-telemetry-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sos-coord-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tactical-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hotline-card__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.hotline-agency-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--brand-primary);
+  border: 1px solid var(--border-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hotline-agency-icon--primary {
+  background: var(--danger-bg);
+  color: var(--danger-accent);
+  border-color: var(--danger-border);
+}
+
+.hotline-agency-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.hotline-number {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  margin-top: 2px;
+}
+
+.tactical-icon-btn {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tactical-icon-btn:active {
+  transform: scale(0.94);
+}
+
+.checklist-index {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
 }
