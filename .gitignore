@@ -29,4 +29,6 @@ dist-ssr
 
 # Agents and local tools
 .agents/
+scratch/
 
+.vercel
