@@ -133,7 +133,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
   return (
     <div
-      className={`splash-screen ${isExiting ? 'splash-screen--fade-slide-out' : ''}`}
+      className={`splash-screen splash-screen--gradient-anim ${isExiting ? 'splash-screen--fade-slide-out' : ''}`}
       role="status"
       aria-live="polite"
       aria-label="TerraGuard Live Telemetry Loading"
@@ -148,7 +148,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             <span className="splash-radar-ring splash-radar-ring--1" aria-hidden />
             <span className="splash-radar-ring splash-radar-ring--2" aria-hidden />
             <div className="splash-logo-pulse">
-              <Logo size={84} title="TerraGuard" />
+              <Logo size={92} variant="splash" withGlow />
             </div>
           </div>
         </div>
