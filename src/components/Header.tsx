@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldAlert, Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Volume2, VolumeX, LogOut } from 'lucide-react';
+import { Logo } from './Logo';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { AvatarDisplay } from './PresetAvatars';
@@ -20,9 +21,7 @@ export const Header: React.FC = () => {
   return (
     <header className="top-bar">
       <div className="top-bar__brand">
-        <div className="top-bar__icon">
-          <ShieldAlert size={20} />
-        </div>
+        <Logo size={28} variant="header" />
         <div key={language} className="cross-fade-text">
           <div className="top-bar__title">{t.appTitle}</div>
           <div className="top-bar__subtitle">{t.appSubtitle}</div>

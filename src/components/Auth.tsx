@@ -7,7 +7,6 @@ import {
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import {
-  Shield,
   Mail,
   Lock,
   User,
@@ -22,6 +21,7 @@ import {
   CheckCircle2,
   UserCheck,
 } from 'lucide-react';
+import { Logo } from './Logo';
 import { useAuth } from '../context/AuthContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -235,9 +235,7 @@ const Auth: React.FC = () => {
       <div className="auth-card">
         {/* Header */}
         <div className="auth-card__header">
-          <div className="auth-logo">
-            <Shield size={28} strokeWidth={2.5} />
-          </div>
+          <Logo size={60} variant="badge" style={{ marginBottom: '8px' }} />
           <h1 className="auth-title">TerraGuard</h1>
           <p className="auth-subtitle">Civilian Disaster Companion</p>
         </div>
