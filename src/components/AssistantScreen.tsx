@@ -7,7 +7,13 @@ import {
   Bot, 
   User, 
   ArrowRight,
-  Sparkles
+  Sparkles,
+  PhoneCall,
+  RotateCcw,
+  Package,
+  Car,
+  Zap,
+  Home
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -17,6 +23,7 @@ export const AssistantScreen: React.FC = () => {
     messages, 
     isAiThinking,
     sendChatMessage, 
+    askAssistantDirectly,
     isSpeaking, 
     speakText, 
     stopSpeaking, 
@@ -59,6 +66,41 @@ export const AssistantScreen: React.FC = () => {
         <span>{t.verifiedCivilDefence}</span>
       </div>
 
+      {/* 1-Tap Triage Fast Bar (Instant <100ms verified response) */}
+      <div className="triage-quick-strip">
+        <button 
+          className="triage-quick-btn"
+          onClick={() => askAssistantDirectly('pack')}
+        >
+          <Package size={13} />
+          <span>{language === 'bm' ? 'Kemas (3 Minit)' : 'What to pack?'}</span>
+        </button>
+
+        <button 
+          className="triage-quick-btn"
+          onClick={() => askAssistantDirectly('drive')}
+        >
+          <Car size={13} />
+          <span>{language === 'bm' ? 'Pandu redah air?' : 'Can I drive?'}</span>
+        </button>
+
+        <button 
+          className="triage-quick-btn"
+          onClick={() => askAssistantDirectly('power')}
+        >
+          <Zap size={13} />
+          <span>{language === 'bm' ? 'Tutup suis elektrik?' : 'Shut off breaker?'}</span>
+        </button>
+
+        <button 
+          className="triage-quick-btn"
+          onClick={() => askAssistantDirectly('trapped')}
+        >
+          <Home size={13} />
+          <span>{language === 'bm' ? 'Air masuk rumah?' : 'Water entering?'}</span>
+        </button>
+      </div>
+
       {/* Messages Feed */}
       <div className="chat-message-list">
         {messages.map((m) => {
@@ -66,7 +108,7 @@ export const AssistantScreen: React.FC = () => {
           return (
             <div 
               key={m.id} 
-              className={`chat-bubble ${isUser ? 'chat-bubble--user' : 'chat-bubble--assistant'}`}
+              className={`chat-bubble ${isUser ? 'chat-bubble--user' : 'chat-bubble--assistant chat-bubble--reveal'}`}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', opacity: 0.85, fontSize: '11px', flexWrap: 'wrap' }}>
                 {isUser ? <User size={12} /> : <Bot size={12} />}
@@ -88,17 +130,18 @@ export const AssistantScreen: React.FC = () => {
                   >
                     <Sparkles size={10} />
                     {m.source === 'gemini'
-                      ? (language === 'bm' ? 'Disahkan Gemini AI' : 'Verified by Gemini AI')
-                      : (language === 'bm' ? 'Protokol Luar Talian' : 'Offline Protocol')}
+                      ? (language === 'bm' ? 'Disahkan Gemini AI (Pantas)' : 'Verified by Gemini AI (Fast)')
+                      : (language === 'bm' ? 'Protokol Sah Pertahanan Awam' : 'Verified Civil Defence Protocol')}
                   </span>
                 )}
               </div>
 
-              <div style={{ fontWeight: isUser ? 500 : 700, fontSize: '14px' }}>
+              <div style={{ fontWeight: isUser ? 500 : 700, fontSize: '14px', lineHeight: 1.45 }}>
                 {m.text}
+                {m.isStreaming && <span className="streaming-cursor" />}
               </div>
 
-              {/* Verified Deep-Research Summary Box */}
+              {/* Verified Civil Defence / Telemetry Summary Box */}
               {!isUser && (m.verificationSummary || (m.sourcesChecked && m.sourcesChecked.length > 0)) && (
                 <div
                   style={{
@@ -115,8 +158,8 @@ export const AssistantScreen: React.FC = () => {
                     <ShieldCheck size={14} />
                     <span>
                       {language === 'bm'
-                        ? 'Semakan Data & Pengesahan Masa Nyata:'
-                        : 'Live Research & Telemetry Verification:'}
+                        ? 'Pengesahan Protokol Rasmi & Telemetri:'
+                        : 'Official Protocol & Telemetry Verification:'}
                     </span>
                   </div>
                   {m.verificationSummary && (
@@ -156,8 +199,50 @@ export const AssistantScreen: React.FC = () => {
                 </div>
               )}
 
+              {/* Verified Emergency Hotlines Direct Dial Strip */}
+              {!isUser && m.hotlines && m.hotlines.length > 0 && (
+                <div className="chat-hotlines-box">
+                  <div className="chat-hotlines-title">
+                    <PhoneCall size={12} />
+                    <span>
+                      {language === 'bm'
+                        ? 'Talian Kecemasan Terus (24 Jam):'
+                        : 'Verified Emergency Direct Dial (24 Hours):'}
+                    </span>
+                  </div>
+                  <div className="chat-hotlines-grid">
+                    {m.hotlines.map((h, hIdx) => (
+                      <a 
+                        key={hIdx}
+                        href={`tel:${h.number}`}
+                        className="chat-hotline-pill"
+                        title={language === 'bm' ? h.purposeBm : h.purposeEn}
+                      >
+                        <span className="chat-hotline-number">{h.name}: {h.number}</span>
+                        <span style={{ fontSize: '9px', opacity: 0.8, fontWeight: 500 }}>
+                          {language === 'bm' ? h.purposeBm : h.purposeEn}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Graceful Fallback Retry Button */}
+              {!isUser && m.canRetry && m.retryPrompt && (
+                <div>
+                  <button 
+                    className="chat-retry-btn"
+                    onClick={() => m.retryPrompt && sendChatMessage(m.retryPrompt)}
+                  >
+                    <RotateCcw size={12} />
+                    <span>{language === 'bm' ? 'Cuba Semula' : 'Retry'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Read Aloud Button for Hands-Free Mobility */}
-              {!isUser && (
+              {!isUser && !m.isStreaming && (
                 <button 
                   className={`chat-audio-btn ${isSpeaking ? 'speaking' : ''}`}
                   onClick={() => handleToggleSpeech(m.text, m.verificationSummary, m.steps)}
@@ -177,7 +262,7 @@ export const AssistantScreen: React.FC = () => {
               )}
 
               {/* Follow-up Suggestions Chips */}
-              {m.suggestions && (
+              {m.suggestions && !m.isStreaming && (
                 <div className="chat-suggestions">
                   {m.suggestions.map((sug, i) => (
                     <button 
@@ -196,22 +281,20 @@ export const AssistantScreen: React.FC = () => {
           );
         })}
 
+        {/* Ultra-Fast Typing Indicator within 100ms */}
         {isAiThinking && (
-          <div className="chat-bubble chat-bubble--assistant" style={{ opacity: 0.92 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--brand-primary)' }}>
-                <Sparkles size={14} className="spin-icon" />
-                <span>
-                  {language === 'bm'
-                    ? 'Menjalankan semakan mendalam (Deep Research)...'
-                    : 'Running multi-source Deep Research & Verification...'}
-                </span>
+          <div className="chat-bubble chat-bubble--assistant" style={{ padding: '8px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="typing-dots-container">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', paddingLeft: '20px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 {language === 'bm'
-                  ? '• Menyemak radar hujan OpenWeather, luahan sungai satelit Copernicus GloFAS & protokol NADMA/JPS'
-                  : '• Checking OpenWeather rainfall radar, Copernicus GloFAS river discharge & NADMA/JPS protocols'}
-              </div>
+                  ? 'Menyemak panduan keselamatan...'
+                  : 'Checking safety protocols...'}
+              </span>
             </div>
           </div>
         )}

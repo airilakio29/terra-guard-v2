@@ -116,32 +116,54 @@ export const GoogleMapView: React.FC<Props> = ({
       scenario.hazards.forEach(h => {
         const c = toLatLng(scenario, h.coords.x, h.coords.y, h.lat, h.lon);
         const color = h.severity === 'danger' ? dangerColor : advisoryColor;
-        const circle = new google.maps.Circle({
-          map, center: c, radius: unitsToMeters(h.coords.radius),
-          strokeColor: color, strokeOpacity: 0.9, strokeWeight: 2,
-          fillColor: color, fillOpacity: 0.25
+        const radiusM = unitsToMeters(h.coords.radius);
+
+        // Generate realistic 8-vertex hazard polygon contour
+        const latDelta = radiusM / 111320;
+        const lngDelta = radiusM / (111320 * Math.cos(c.lat * (Math.PI / 180)));
+        const hash = h.id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+        const polyCoords: google.maps.LatLngLiteral[] = [];
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * 2 * Math.PI) / 8;
+          const variance = 0.82 + (((hash * (i + 1) * 31) % 100) / 100) * 0.32;
+          polyCoords.push({
+            lat: c.lat + Math.sin(angle) * latDelta * variance * 0.85,
+            lng: c.lng + Math.cos(angle) * lngDelta * variance,
+          });
+        }
+
+        const polygon = new google.maps.Polygon({
+          map,
+          paths: polyCoords,
+          strokeColor: color,
+          strokeOpacity: 0.95,
+          strokeWeight: 2,
+          fillColor: color,
+          fillOpacity: 0.35,
         });
+
         const badgeText = h.ipuValue
           ? `🌫️ IPU ${h.ipuValue}`
           : h.waterDepthMeters
-            ? `⚠️ ${h.waterDepthMeters} m`
+            ? `⚠️ ${h.waterDepthMeters} m depth`
             : '⚠️ Hazard';
         const label = new google.maps.marker.AdvancedMarkerElement({
           map, position: c,
-          content: pill(badgeText, 'var(--danger-bg)', 'var(--danger-text)', color),
+          content: pill(badgeText, 'var(--bg-surface)', 'var(--text-primary)', color),
           title: language === 'bm' ? h.titleBm : h.title
         });
-        cleanups.push(() => { circle.setMap(null); label.map = null; });
+        cleanups.push(() => { polygon.setMap(null); label.map = null; });
       });
     }
 
     if (filter === 'all' || filter === 'shelters') {
       scenario.shelters.forEach(s => {
         const sel = s.id === selectedShelter.id;
+        const shortName = s.name.length > 18 ? s.name.slice(0, 16) + '…' : s.name;
         const m = new google.maps.marker.AdvancedMarkerElement({
           map, position: toLatLng(scenario, s.coords.x, s.coords.y, s.lat, s.lon),
-          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? brandColor : safeColor, 'var(--on-vivid)', 'var(--on-vivid)'),
-          title: s.name,
+          content: pill(`🏠 ${shortName} (${s.capacityCurrent}/${s.capacityTotal})`, sel ? brandColor : safeColor, 'var(--on-vivid)', 'var(--on-vivid)'),
+          title: `${s.name} (${s.capacityCurrent}/${s.capacityTotal} cap)`,
           zIndex: sel ? 10 : 1
         });
         m.addListener('gmp-click', () => onSelectShelter(s));

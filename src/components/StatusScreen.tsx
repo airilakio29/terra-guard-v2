@@ -80,7 +80,11 @@ export const StatusScreen: React.FC = () => {
         <div className="civil-broadcast-bar__badge">
           <span className="tactical-ping-dot" />
           <span className="tabular-mono">
-            {isDanger ? 'RED ALERT' : isAdvisory ? 'ADVISORY' : 'EOC LIVE'}
+            {isDanger
+              ? (bm ? 'KRITIKAL (CRITICAL)' : 'CRITICAL')
+              : isAdvisory
+                ? (bm ? 'AMARAN (ADVISORY)' : 'ADVISORY')
+                : (bm ? 'SELAMAT (ALL CLEAR)' : 'ALL CLEAR')}
           </span>
         </div>
         <div className="civil-broadcast-bar__ticker">
@@ -244,15 +248,15 @@ export const StatusScreen: React.FC = () => {
                     <span className="status-card__badge-pill" style={{ marginBottom: 0 }}>
                       {isSafe
                         ? bm
-                          ? 'HARI BIASA • SELAMAT'
-                          : 'NORMAL DAY • ALL CLEAR'
+                          ? 'SELAMAT (ALL CLEAR)'
+                          : 'ALL CLEAR'
                         : isAdvisory
                           ? bm
-                            ? 'AMARAN AWAL (CUACA / JEREBU)'
-                            : 'ADVISORY WATCH'
+                            ? 'AMARAN (ADVISORY)'
+                            : 'ADVISORY'
                           : bm
-                            ? 'BAHAYA KRITIKAL'
-                            : 'CRITICAL DANGER'}
+                            ? 'KRITIKAL (CRITICAL)'
+                            : 'CRITICAL'}
                     </span>
                     {weather && (
                       <span
@@ -375,20 +379,23 @@ export const StatusScreen: React.FC = () => {
                 {/* River */}
                 <path d="M0,8 Q50,15 100,6" fill="none" stroke="var(--map-water)" strokeWidth="3.5" />
 
-                {/* Hazard zone */}
+                {/* Hazard polygon with water reading */}
                 {currentScenario.hazards.length > 0 && (
-                  <circle cx="55" cy="18" r="8" fill="var(--danger-bg)" stroke="var(--danger-badge)" strokeWidth="0.8" />
+                  <polygon
+                    points="48,15 57,13 63,17 61,23 53,24 47,19"
+                    fill="var(--danger-bg)"
+                    stroke="var(--danger-badge)"
+                    strokeWidth="0.8"
+                  />
                 )}
 
                 {/* Route */}
                 <path d="M 28 22 Q 48 26, 75 14" fill="none" stroke="var(--map-route)" strokeWidth="1.1" strokeDasharray="2 1" />
 
-                {/* Animated Sonar Rings on User GPS Beacon */}
-                <circle cx="28" cy="22" r="3" fill="none" stroke="var(--map-user-pin)" strokeWidth="0.6" className="svg-sonar-ring" />
+                {/* Clear User GPS Beacon */}
                 <circle cx="28" cy="22" r="3" fill="var(--map-user-pin)" stroke="var(--bg-surface)" strokeWidth="1" />
 
-                {/* Nearest Shelter Pin + Pulse */}
-                <circle cx="75" cy="14" r="3.5" fill="none" stroke="var(--map-shelter-pin)" strokeWidth="0.5" className="svg-sonar-ring svg-sonar-ring--delayed" />
+                {/* Nearest Shelter Pin with Capacity */}
                 <circle cx="75" cy="14" r="3.5" fill="var(--map-shelter-pin)" stroke="var(--bg-surface)" strokeWidth="1" />
                 <text x="75" y="15.2" textAnchor="middle" fill="var(--on-vivid)" fontSize="2.8" fontWeight="bold">H</text>
               </svg>

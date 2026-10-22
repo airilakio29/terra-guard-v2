@@ -236,50 +236,52 @@ export const MapScreen: React.FC = () => {
               strokeLinecap="round"
             />
 
-            <text x="32" y="11" fill="var(--map-water-label)" fontSize="2.4" fontWeight="800" letterSpacing="0.4">
-              ~ {currentScenario.locationName.toUpperCase()} BASIN ~
-            </text>
+            {(filter === 'all' || filter === 'hazards') && currentScenario.hazards.map(h => {
+              // Organic 8-vertex polygon for flood / hazard zone
+              const polyPoints = [0, 1, 2, 3, 4, 5, 6, 7].map(i => {
+                const angle = (i / 8) * 2 * Math.PI;
+                const r = h.coords.radius * (1 + 0.16 * Math.sin(i * 2.3 + (h.id === 'hz-1' ? 1 : 2)));
+                const px = (h.coords.x + r * Math.cos(angle)).toFixed(1);
+                const py = (h.coords.y + r * Math.sin(angle)).toFixed(1);
+                return `${px},${py}`;
+              }).join(' ');
 
-            {(filter === 'all' || filter === 'hazards') && currentScenario.hazards.map(h => (
-              <g key={h.id}>
-                <circle
-                  cx={h.coords.x}
-                  cy={h.coords.y}
-                  r={h.coords.radius}
-                  fill={h.severity === 'danger' ? 'url(#dangerFlood)' : 'url(#advisoryFlood)'}
-                />
-                <circle
-                  cx={h.coords.x}
-                  cy={h.coords.y}
-                  r={h.coords.radius}
-                  fill="none"
-                  stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
-                  strokeWidth="1.2"
-                  strokeDasharray="2 1.5"
-                />
+              const depthText = h.waterDepthMeters != null
+                ? `${h.waterDepthMeters}m depth`
+                : (h.ipuValue ? `IPU ${h.ipuValue}` : 'Hazard');
 
-                <rect
-                  x={h.coords.x - 14}
-                  y={h.coords.y - 7}
-                  width="28"
-                  height="4.8"
-                  rx="2"
-                  fill="var(--danger-bg)"
-                  stroke="var(--danger-border)"
-                  strokeWidth="0.6"
-                />
-                <text
-                  x={h.coords.x}
-                  y={h.coords.y - 3.8}
-                  textAnchor="middle"
-                  fill="var(--danger-text)"
-                  fontSize="2.4"
-                  fontWeight="800"
-                >
-                  ! {h.ipuValue ? `IPU: ${h.ipuValue}` : h.waterDepthMeters ? `Water: ${h.waterDepthMeters}m` : 'Hazard Zone'}
-                </text>
-              </g>
-            ))}
+              return (
+                <g key={h.id}>
+                  <polygon
+                    points={polyPoints}
+                    fill={h.severity === 'danger' ? 'url(#dangerFlood)' : 'url(#advisoryFlood)'}
+                    stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
+                    strokeWidth="1.2"
+                  />
+
+                  <rect
+                    x={h.coords.x - 14}
+                    y={h.coords.y - 3}
+                    width="28"
+                    height="5.4"
+                    rx="2"
+                    fill="var(--bg-surface)"
+                    stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x={h.coords.x}
+                    y={h.coords.y + 0.8}
+                    textAnchor="middle"
+                    fill={h.severity === 'danger' ? 'var(--danger-text)' : 'var(--advisory-text)'}
+                    fontSize="2.4"
+                    fontWeight="800"
+                  >
+                    ⚠️ {depthText}
+                  </text>
+                </g>
+              );
+            })}
 
             {selectedShelter && (
               <g>
@@ -320,22 +322,11 @@ export const MapScreen: React.FC = () => {
                   onClick={() => handleShelterClick(s)}
                   style={{ cursor: 'pointer' }}
                 >
-                  {isSelected && (
-                    <circle
-                      cx={s.coords.x}
-                      cy={s.coords.y}
-                      r="6.8"
-                      fill="var(--map-shelter-halo)"
-                      stroke="var(--brand-primary)"
-                      strokeWidth="1.4"
-                    />
-                  )}
-
                   <circle
                     cx={s.coords.x}
                     cy={s.coords.y}
                     r="4.2"
-                    fill="var(--map-shelter-pin)"
+                    fill={isSelected ? 'var(--brand-primary)' : 'var(--map-shelter-pin)'}
                     stroke="var(--bg-surface)"
                     strokeWidth="1.2"
                   />
@@ -351,10 +342,10 @@ export const MapScreen: React.FC = () => {
                   </text>
 
                   <rect
-                    x={s.coords.x - 16}
+                    x={s.coords.x - 18}
                     y={s.coords.y + 6}
-                    width="32"
-                    height="4.4"
+                    width="36"
+                    height="5"
                     rx="2"
                     fill={isSelected ? 'var(--brand-primary)' : 'var(--bg-surface)'}
                     stroke={isSelected ? 'var(--brand-primary)' : 'var(--border-strong)'}
@@ -362,28 +353,19 @@ export const MapScreen: React.FC = () => {
                   />
                   <text
                     x={s.coords.x}
-                    y={s.coords.y + 9.2}
+                    y={s.coords.y + 9.5}
                     textAnchor="middle"
                     fill={isSelected ? 'var(--on-vivid)' : 'var(--text-primary)'}
                     fontSize="2.1"
                     fontWeight="700"
                   >
-                    {s.name.length > 22 ? `${s.name.substring(0, 20)}...` : s.name}
+                    {s.name.length > 14 ? `${s.name.substring(0, 13)}...` : s.name} ({s.capacityCurrent}/{s.capacityTotal})
                   </text>
                 </g>
               );
             })}
 
             <g>
-              <circle
-                cx={userCoord.x}
-                cy={userCoord.y}
-                r="6.5"
-                fill="var(--brand-surface)"
-                fillOpacity="0.4"
-                stroke="var(--brand-accent)"
-                strokeWidth="0.8"
-              />
               <circle
                 cx={userCoord.x}
                 cy={userCoord.y}

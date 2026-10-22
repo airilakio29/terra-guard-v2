@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CloudRain,
   Droplets,
@@ -12,10 +12,19 @@ import {
   MapPin,
   AlertTriangle,
   Waves,
-  Compass
+  Compass,
+  Building2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { iconUrl, rainOutlook, getIpuMeta } from '../services/weather';
+import {
+  fetchDoeApimsTelemetry,
+  getMalaysianIpuAdvice,
+  getMalaysianStatesWithStations,
+  classifyMalaysianIpu,
+  type ApimsResponse
+} from '../services/apims';
+import type { RiskLevel } from '../types';
 
 const OUTLOOK_TEXT = {
   none: {
@@ -54,24 +63,91 @@ function timeAgo(ms: number, bm: boolean) {
   return bm ? `${mins}m lalu` : `${mins}m ago`;
 }
 
+// Preset verified baseline readings for the 3 demo scenarios
+const DEMO_SCENARIO_IPU: Record<
+  RiskLevel,
+  {
+    ipu: number;
+    dominant: 'PM2.5' | 'PM10';
+    stationName: string;
+    stationNameBm: string;
+    distanceKm: number;
+    area: string;
+  }
+> = {
+  advisory: {
+    ipu: 68,
+    dominant: 'PM2.5',
+    stationName: 'Shah Alam, SELANGOR',
+    stationNameBm: 'Shah Alam, SELANGOR',
+    distanceKm: 6.6,
+    area: 'Subang Jaya (USJ 1)'
+  },
+  danger: {
+    ipu: 52,
+    dominant: 'PM2.5',
+    stationName: 'Kota Bharu, KELANTAN',
+    stationNameBm: 'Kota Bharu, KELANTAN',
+    distanceKm: 2.7,
+    area: 'Kota Bharu (Pasir Mas)'
+  },
+  safe: {
+    ipu: 42,
+    dominant: 'PM2.5',
+    stationName: 'Minden, PULAU PINANG',
+    stationNameBm: 'Minden, PULAU PINANG',
+    distanceKm: 6.8,
+    area: 'Bayan Lepas (George Town)'
+  }
+};
+
 export const LiveWeatherCard: React.FC = () => {
-  const { weather, weatherError, language, locating, locateMe, refreshFeeds, isRefreshing } = useApp();
+  const {
+    weather,
+    weatherError,
+    language,
+    locating,
+    locateMe,
+    refreshFeeds,
+    isRefreshing,
+    scenario,
+    setScenario,
+    isLiveMode,
+    setIsLiveMode,
+    currentScenario
+  } = useApp();
+
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedState, setSelectedState] = useState<string>('all');
+  const [apimsData, setApimsData] = useState<ApimsResponse | null>(null);
+  const [apimsLoading, setApimsLoading] = useState(false);
   const bm = language === 'bm';
 
-  if (weatherError === 'missing-key') {
-    return (
-      <div className="section-card weather-card">
-        <div className="section-title">
-          <CloudRain size={16} />
-          <span>{bm ? 'Telemetri Cuaca & Jerebu (IPU)' : 'Weather & Haze (IPU) Telemetry'}</span>
-        </div>
-        <p className="weather-muted">
-          Add <code>VITE_OPENWEATHER_API_KEY</code> to <code>.env.local</code>.
-        </p>
-      </div>
-    );
-  }
+  // Fetch official DOE APIMS data on coordinate change or state filter change
+  useEffect(() => {
+    let isSubscribed = true;
+    setApimsLoading(true);
+
+    const lat = currentScenario.lat || 3.0515;
+    const lon = currentScenario.lon || 101.5823;
+
+    fetchDoeApimsTelemetry(lat, lon, selectedState)
+      .then(res => {
+        if (isSubscribed) {
+          setApimsData(res);
+          setApimsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isSubscribed) {
+          setApimsLoading(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [currentScenario.lat, currentScenario.lon, selectedState, isRefreshing]);
 
   if (!weather) {
     return (
@@ -89,7 +165,7 @@ export const LiveWeatherCard: React.FC = () => {
           ) : (
             <>
               <Radio size={14} className="spin-icon" color="var(--brand-primary)" />
-              <span>{bm ? 'Memuatkan telemetri cuaca & IPU…' : 'Syncing live weather & IPU telemetry…'}</span>
+              <span>{bm ? 'Memuatkan telemetri cuaca & APIMS…' : 'Syncing live weather & APIMS telemetry…'}</span>
             </>
           )}
         </div>
@@ -99,10 +175,38 @@ export const LiveWeatherCard: React.FC = () => {
 
   const outlookKey = rainOutlook(weather);
   const outlook = OUTLOOK_TEXT[outlookKey];
-  const ipuMeta = getIpuMeta(weather.ipuCategory, bm);
   const windKmh = Math.round(weather.windMs * 3.6);
   const rainBarPct = Math.min(100, Math.round((weather.rain24hMm / 60) * 100));
-  const ipuBarPct = Math.min(100, Math.round((weather.ipuIndex / 300) * 100));
+
+  // Determine active IPU telemetry (Demo Scenario vs Live Real Data)
+  const isDemo = !isLiveMode;
+  const demoIpuPreset = DEMO_SCENARIO_IPU[scenario] || DEMO_SCENARIO_IPU.advisory;
+
+  const activeIpu = isDemo
+    ? demoIpuPreset.ipu
+    : apimsData?.nearestStation?.ipu ?? weather.ipuIndex;
+
+  const activeCategory = classifyMalaysianIpu(activeIpu);
+  const ipuMeta = getIpuMeta(activeCategory, bm);
+  const ipuAdvice = getMalaysianIpuAdvice(activeCategory, bm);
+
+  const activeStationName = isDemo
+    ? demoIpuPreset.stationName
+    : apimsData?.nearestStation?.stationLocation ?? weather.stationName ?? 'DOE Station';
+
+  const activeDistanceKm = isDemo
+    ? demoIpuPreset.distanceKm
+    : apimsData?.nearestStation?.distKm ?? weather.stationDistanceKm ?? 0;
+
+  const activeDominant = isDemo
+    ? demoIpuPreset.dominant
+    : apimsData?.nearestStation?.dominantPollutant ?? weather.dominantPollutant;
+
+  const activeTimestampMs = isDemo
+    ? Date.now() - 12 * 60 * 1000
+    : apimsData?.nearestStation?.datetimeMs ?? weather.stationUpdatedMs ?? Date.now();
+
+  const ipuBarPct = Math.min(100, Math.round((activeIpu / 300) * 100));
 
   const riverRatio =
     weather.riverDischargeM3s !== null &&
@@ -110,6 +214,8 @@ export const LiveWeatherCard: React.FC = () => {
     weather.riverDischargeMeanM3s > 0
       ? weather.riverDischargeM3s / weather.riverDischargeMeanM3s
       : null;
+
+  const availableStates = apimsData ? getMalaysianStatesWithStations(apimsData.stations) : [];
 
   return (
     <div className="section-card weather-card">
@@ -129,17 +235,126 @@ export const LiveWeatherCard: React.FC = () => {
             onClick={refreshFeeds}
             disabled={isRefreshing}
             title={bm ? 'Muat semula' : 'Refresh'}
+            aria-label={bm ? 'Muat semula' : 'Refresh'}
           >
             <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
           </button>
         </div>
       </div>
 
+      {/* ─── Mode Selector: Demo Scenarios vs Live Real Data Toggle ──────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          padding: '6px 8px',
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+          marginTop: '6px',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => setIsLiveMode(false)}
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 9px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid',
+              borderColor: isDemo ? 'var(--brand-primary)' : 'var(--border-subtle)',
+              background: isDemo ? 'var(--brand-primary)' : 'var(--bg-surface)',
+              color: isDemo ? 'var(--btn-filled-text)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'var(--transition-fast)'
+            }}
+          >
+            {bm ? '🧪 Data Demo' : '🧪 Demo Mode'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsLiveMode(true)}
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 9px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid',
+              borderColor: isLiveMode ? 'var(--brand-primary)' : 'var(--border-subtle)',
+              background: isLiveMode ? 'var(--brand-primary)' : 'var(--bg-surface)',
+              color: isLiveMode ? 'var(--btn-filled-text)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              transition: 'var(--transition-fast)'
+            }}
+          >
+            {bm ? '📡 APIMS Langsung' : '📡 Live DOE APIMS'}
+          </button>
+        </div>
+
+        {/* Demo Scenario Pill Selector */}
+        {isDemo ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--advisory-bg)',
+                color: 'var(--advisory-text)',
+                border: '1px solid var(--advisory-border)'
+              }}
+            >
+              {bm ? 'DATA DEMO' : 'DEMO DATA'}
+            </span>
+            {(['advisory', 'danger', 'safe'] as RiskLevel[]).map(r => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setScenario(r)}
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid',
+                  borderColor: scenario === r ? 'var(--brand-primary)' : 'var(--border-subtle)',
+                  background: scenario === r ? 'var(--brand-surface)' : 'var(--bg-surface)',
+                  color: scenario === r ? 'var(--brand-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                {r === 'advisory' ? 'Subang' : r === 'danger' ? 'Kelantan' : 'Penang'}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 800,
+              padding: '2px 6px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--safe-bg)',
+              color: 'var(--safe-text)',
+              border: '1px solid var(--safe-border)'
+            }}
+          >
+            {bm ? 'RASMI JAS' : 'OFFICIAL DOE APIMS'}
+          </span>
+        )}
+      </div>
+
       {/* ─── Place & GPS Lock Subbar ────────────────────────────────────────── */}
       <div className="weather-card__place">
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
           <MapPin size={12} color="var(--brand-primary)" />
-          <span>{weather.placeName || '—'}</span>
+          <span>{weather.placeName || currentScenario.locationName || '—'}</span>
         </span>
         <button type="button" className="weather-link-btn" onClick={locateMe} disabled={locating}>
           <LocateFixed size={11} className={locating ? 'spin-icon' : ''} />
@@ -201,13 +416,13 @@ export const LiveWeatherCard: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── 4-TILE TACTICAL BENTO TELEMETRY GRID (Apple Weather / EOC Style) ── */}
+      {/* ─── 4-TILE TACTICAL BENTO TELEMETRY GRID ────────────────────────────── */}
       <div className="tactical-bento-grid">
         {/* TILE 1: Rainfall & Precipitation Gauge */}
         <div className="tactical-bento-tile">
           <div className="tactical-bento-tile__head">
             <CloudRain size={13} color="var(--brand-primary)" />
-            <span>{bm ? 'KEamatan HUJAN' : 'PRECIPITATION'}</span>
+            <span>{bm ? 'KEAMATAN HUJAN' : 'PRECIPITATION'}</span>
           </div>
           <div className="tabular-mono tactical-bento-tile__value">
             {weather.rain1hMm.toFixed(1)} <small>mm/h</small>
@@ -226,15 +441,18 @@ export const LiveWeatherCard: React.FC = () => {
           </div>
         </div>
 
-        {/* TILE 2: Malaysian DOE IPU (Haze / Air Quality) */}
+        {/* TILE 2: Official Malaysian DOE APIMS (Haze / IPU) */}
         <div className="tactical-bento-tile">
-          <div className="tactical-bento-tile__head">
-            <Eye size={13} color={ipuMeta.color} />
-            <span>{bm ? 'INDEKS IPU (JEREBU)' : 'MALAYSIA IPU'}</span>
+          <div className="tactical-bento-tile__head" style={{ justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Eye size={13} color={ipuMeta.color} />
+              <span>{bm ? 'INDEKS IPU (JAS)' : 'MALAYSIA IPU'}</span>
+            </div>
+            {apimsLoading && <Radio size={10} className="spin-icon" color="var(--brand-primary)" />}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px' }}>
             <div className="tabular-mono tactical-bento-tile__value" style={{ color: ipuMeta.color }}>
-              {weather.ipuIndex}
+              {activeIpu}
             </div>
             <span
               className="tactical-micro-badge"
@@ -256,8 +474,11 @@ export const LiveWeatherCard: React.FC = () => {
               }}
             />
           </div>
-          <div className="tabular-mono tactical-bento-tile__sub">
-            PM2.5: {weather.pm25} µg/m³
+          <div className="tabular-mono tactical-bento-tile__sub" style={{ display: 'flex', justifyContent: 'space-between', gap: '2px' }}>
+            <span>{activeDominant}</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+              {activeDistanceKm > 0 ? `${activeDistanceKm}km` : (bm ? 'Stesen Terdekat' : 'Nearest')}
+            </span>
           </div>
         </div>
 
@@ -277,7 +498,7 @@ export const LiveWeatherCard: React.FC = () => {
             </span>
             <span className="tabular-mono" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', color: 'var(--text-muted)' }}>
               <Compass size={11} />
-              {weather.dominantPollutant}
+              {activeDominant}
             </span>
           </div>
         </div>
@@ -321,16 +542,16 @@ export const LiveWeatherCard: React.FC = () => {
       >
         <span>
           {isExpanded
-            ? (bm ? 'Tutup Ramalan Jam & Butiran IPU' : 'Hide Hourly Forecast & IPU Details')
-            : (bm ? 'Lihat Ramalan 24 Jam & Analisis Penuh' : 'View 24h Hourly Strip & Full Analysis')}
+            ? (bm ? 'Tutup Ramalan Jam & Butiran APIMS' : 'Hide Hourly Forecast & DOE APIMS Details')
+            : (bm ? 'Lihat Stesen APIMS & Analisis 24 Jam' : 'View Official DOE Stations & Full Analysis')}
         </span>
         <ChevronDown size={15} className={`drop-bar__chevron ${isExpanded ? 'drop-bar__chevron--rotated' : ''}`} />
       </button>
 
-      {/* ─── Expanded View: Full DOE IPU, 24h Rain Outlook & Hourly Strip ────── */}
+      {/* ─── Expanded View: Full Official DOE APIMS Details & 24h Forecast ───── */}
       {isExpanded && (
         <div className="drop-bar__expanded-content" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Malaysian DOE IPU Box */}
+          {/* Official Malaysian DOE APIMS Station Detail Box */}
           <div
             className="weather-outlook"
             style={{
@@ -339,17 +560,17 @@ export const LiveWeatherCard: React.FC = () => {
               border: `1px solid ${ipuMeta.border}`
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}>
-                <Eye size={14} />
-                {bm ? 'Indeks Pencemaran Udara (IPU):' : 'Malaysia Air Pollutant Index (IPU):'}{' '}
-                <span className="tabular-mono">{weather.ipuIndex}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800 }}>
+                <Eye size={15} />
+                <span>{bm ? 'Indeks Pencemaran Udara (IPU):' : 'Malaysia Air Pollutant Index (IPU):'}</span>
+                <span className="tabular-mono" style={{ fontSize: '15px' }}>{activeIpu}</span>
               </span>
               <span
                 style={{
                   fontSize: '11px',
                   fontWeight: 800,
-                  padding: '2px 7px',
+                  padding: '2px 8px',
                   borderRadius: 'var(--radius-full)',
                   border: `1px solid ${ipuMeta.border}`,
                   background: 'var(--bg-surface)',
@@ -359,9 +580,124 @@ export const LiveWeatherCard: React.FC = () => {
                 {ipuMeta.label}
               </span>
             </div>
-            <span className="weather-outlook__meta tabular-mono">
-              {ipuMeta.advice} (PM2.5: {weather.pm25} µg/m³ · PM10: {weather.pm10} µg/m³)
-            </span>
+
+            <div style={{ marginTop: '6px', fontSize: '11.5px', lineHeight: 1.4 }}>
+              <strong>{bm ? 'Nasihat Kesihatan: ' : 'Health Advice: '}</strong>
+              <span>{ipuAdvice.advice}</span>
+            </div>
+
+            <div
+              className="weather-outlook__meta tabular-mono"
+              style={{
+                marginTop: '6px',
+                paddingTop: '6px',
+                borderTop: '1px dashed var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '6px'
+              }}
+            >
+              <span>
+                📍 {activeStationName} ({activeDistanceKm > 0 ? `${activeDistanceKm} km` : (bm ? 'berdekatan' : 'nearby')})
+              </span>
+              <span>
+                {bm ? 'Bahan Utama:' : 'Dominant:'} {activeDominant}
+              </span>
+              <span>
+                🕒 {timeAgo(activeTimestampMs, bm)}
+              </span>
+            </div>
+          </div>
+
+          {/* Manual State Station Browser / Fallback Filter */}
+          <div
+            style={{
+              padding: '10px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <Building2 size={14} color="var(--brand-primary)" />
+                <span>{bm ? 'Pilih Negeri (68 Stesen Rasmi JAS):' : 'Filter by State (68 Official DOE Stations):'}</span>
+              </div>
+              <select
+                value={selectedState}
+                onChange={e => setSelectedState(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11.5px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">{bm ? 'Semua Negeri (Stesen Terdekat)' : 'All States (Nearest Station)'}</option>
+                {availableStates.map(st => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* List of stations in the selected state */}
+            {apimsData && selectedState !== 'all' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                {apimsData.stations.slice(0, 8).map(stn => {
+                  const cat = classifyMalaysianIpu(stn.ipu);
+                  const adv = getMalaysianIpuAdvice(cat, bm);
+                  return (
+                    <div
+                      key={stn.stationId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '4px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--bg-card)',
+                        fontSize: '11px',
+                        border: '1px solid var(--border-subtle)'
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {stn.stationLocation}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="tabular-mono" style={{ color: adv.colorVar, fontWeight: 800 }}>
+                          IPU {stn.ipu}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: adv.bgVar,
+                            color: adv.colorVar,
+                            border: `1px solid ${adv.borderVar}`
+                          }}
+                        >
+                          {adv.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Rain & Flood Outlook Box */}
@@ -395,10 +731,11 @@ export const LiveWeatherCard: React.FC = () => {
             ))}
           </div>
 
+          {/* Attribution & Legal Feeds */}
           <div className="weather-source">
             {bm
-              ? 'Sumber: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Rujuk MetMalaysia / JAS (APIMS) / NADMA.'
-              : 'Sources: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Follow official MetMalaysia / DOE APIMS / NADMA alerts.'}
+              ? 'Data IPU rasmi: Jabatan Alam Sekitar (JAS APIMS • eqms.doe.gov.my). Cuaca & Banjir: MetMalaysia, JPS PublicInfoBanjir & GloFAS.'
+              : 'Official Malaysian IPU feed: Department of Environment (DOE APIMS • eqms.doe.gov.my). Weather & River Discharge: MetMalaysia & GloFAS.'}
           </div>
         </div>
       )}
