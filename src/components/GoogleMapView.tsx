@@ -52,7 +52,9 @@ export const GoogleMapView: React.FC<Props> = ({
   const [mapKind, setMapKind] = useState<MapKind>('roadmap');
   const [traffic, setTraffic] = useState(false);
 
-  const userPos = toLatLng(scenario, userGrid.x, userGrid.y);
+  const userPos = scenario.isLive
+    ? { lat: scenario.lat, lng: scenario.lon }
+    : toLatLng(scenario, userGrid.x, userGrid.y);
   const center = { lat: scenario.lat, lng: scenario.lon };
 
   // 1. Create the map once
@@ -68,7 +70,7 @@ export const GoogleMapView: React.FC<Props> = ({
         mapRef.current = new Map(hostRef.current, {
           center,
           zoom: 15,
-          mapId: 'DEMO_MAP_ID', // required for AdvancedMarkers; Google's built-in demo id
+          mapId: 'DEMO_MAP_ID',
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: 'greedy',
@@ -92,13 +94,12 @@ export const GoogleMapView: React.FC<Props> = ({
     trafficRef.current.setMap(traffic ? map : null);
   }, [ready, mapKind, traffic]);
 
-  // 3. Recenter when scenario changes or user taps recenter
+  // 3. Recenter when live coordinates change or user taps recenter
   useEffect(() => {
     if (!ready || !mapRef.current) return;
-    mapRef.current.panTo(center);
+    mapRef.current.panTo({ lat: scenario.lat, lng: scenario.lon });
     mapRef.current.setZoom(15);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, scenario.id, recenterSignal]);
+  }, [ready, scenario.id, scenario.lat, scenario.lon, recenterSignal]);
 
   // 4. Hazards, shelters, user marker
   useEffect(() => {
@@ -113,16 +114,21 @@ export const GoogleMapView: React.FC<Props> = ({
 
     if (filter === 'all' || filter === 'hazards') {
       scenario.hazards.forEach(h => {
-        const c = toLatLng(scenario, h.coords.x, h.coords.y);
+        const c = toLatLng(scenario, h.coords.x, h.coords.y, h.lat, h.lon);
         const color = h.severity === 'danger' ? dangerColor : advisoryColor;
         const circle = new google.maps.Circle({
           map, center: c, radius: unitsToMeters(h.coords.radius),
           strokeColor: color, strokeOpacity: 0.9, strokeWeight: 2,
           fillColor: color, fillOpacity: 0.25
         });
+        const badgeText = h.ipuValue
+          ? `🌫️ IPU ${h.ipuValue}`
+          : h.waterDepthMeters
+            ? `⚠️ ${h.waterDepthMeters} m`
+            : '⚠️ Hazard';
         const label = new google.maps.marker.AdvancedMarkerElement({
           map, position: c,
-          content: pill(`⚠️ ${h.waterDepthMeters ? `${h.waterDepthMeters} m` : 'Hazard'}`, 'var(--danger-bg)', 'var(--danger-text)', color),
+          content: pill(badgeText, 'var(--danger-bg)', 'var(--danger-text)', color),
           title: language === 'bm' ? h.titleBm : h.title
         });
         cleanups.push(() => { circle.setMap(null); label.map = null; });
@@ -133,8 +139,8 @@ export const GoogleMapView: React.FC<Props> = ({
       scenario.shelters.forEach(s => {
         const sel = s.id === selectedShelter.id;
         const m = new google.maps.marker.AdvancedMarkerElement({
-          map, position: toLatLng(scenario, s.coords.x, s.coords.y),
-          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? brandColor : safeColor, 'var(--text-inverse)', 'var(--text-inverse)'),
+          map, position: toLatLng(scenario, s.coords.x, s.coords.y, s.lat, s.lon),
+          content: pill(`🏠 ${s.name.length > 24 ? s.name.slice(0, 22) + '…' : s.name}`, sel ? brandColor : safeColor, 'var(--on-vivid)', 'var(--on-vivid)'),
           title: s.name,
           zIndex: sel ? 10 : 1
         });
@@ -158,7 +164,7 @@ export const GoogleMapView: React.FC<Props> = ({
     if (!ready || !map) return;
     let cancelled = false;
     let line: google.maps.Polyline | null = null;
-    const dest = toLatLng(scenario, selectedShelter.coords.x, selectedShelter.coords.y);
+    const dest = toLatLng(scenario, selectedShelter.coords.x, selectedShelter.coords.y, selectedShelter.lat, selectedShelter.lon);
     const routeColor = getVar('--map-route');
 
     fetchWalkRoute(userPos, dest)
@@ -181,12 +187,12 @@ export const GoogleMapView: React.FC<Props> = ({
 
     return () => { cancelled = true; line?.setMap(null); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, scenario.id, selectedShelter.id]);
+  }, [ready, scenario.id, scenario.lat, scenario.lon, selectedShelter.id]);
 
   const L = LABELS[language];
   const btn = (active: boolean): React.CSSProperties => ({
     border: 'none', padding: '6px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-    background: active ? 'var(--brand-primary)' : 'var(--bg-surface)', color: active ? 'var(--text-inverse)' : 'var(--text-primary)'
+    background: active ? 'var(--brand-primary)' : 'var(--bg-surface)', color: active ? 'var(--on-vivid)' : 'var(--text-primary)'
   });
 
   return (

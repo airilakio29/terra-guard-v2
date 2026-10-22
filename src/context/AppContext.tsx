@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { Language, RiskLevel, ShelterInfo, ScenarioData, ChatMessage, LiveWeather } from '../types';
 import { SCENARIOS } from '../data/scenarios';
 import { TRANSLATIONS } from '../data/translations';
-import { fetchLiveWeather, hasWeatherKey } from '../services/weather';
+import { fetchLiveWeather, geocodeLocationQuery, hasWeatherKey } from '../services/weather';
+import { buildLiveScenario, fetchNearbyRealShelters } from '../services/liveRiskEngine';
 import { askSafetyAi } from '../services/safetyAi';
 
 import { useAuth } from './AuthContext';
@@ -29,8 +30,10 @@ interface AppContextType {
   weather: LiveWeather | null;
   weatherError: string | null;
   userLocation: { lat: number; lon: number } | null;
+  isGpsLocked: boolean;
   locating: boolean;
   locateMe: () => void;
+  searchLocation: (query: string) => Promise<boolean>;
   clearMyLocation: () => void;
   checklist: Record<string, boolean>;
   toggleChecklistItem: (id: string) => void;
@@ -61,6 +64,8 @@ interface AppContextType {
   isSavingProfile: boolean;
 }
 
+const DEFAULT_MY_COORDS = { lat: 3.139, lon: 101.6869 }; // Kuala Lumpur / Klang Valley center
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -69,7 +74,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [language, setLanguageState] = useState<Language>(() => {
     try {
       const saved = localStorage.getItem('terra_guard_lang');
-      return (saved === 'bm' || saved === 'en') ? saved : 'en';
+      return saved === 'bm' || saved === 'en' ? saved : 'en';
     } catch {
       return 'en';
     }
@@ -83,22 +88,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // ignore
     }
   };
-  const [scenario, setScenario] = useState<RiskLevel>('advisory');
+
+  const [scenario, setScenario] = useState<RiskLevel>('safe');
   const [activeTab, setActiveTab] = useState<AppTab>('status');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAiThinking, setIsAiThinking] = useState(false);
 
-  const currentScenario = SCENARIOS[scenario];
-  const [selectedShelter, setSelectedShelter] = useState<ShelterInfo>(
-    currentScenario.shelters[0]
-  );
+  // Live GPS & Location Coordinates
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(() => {
+    try {
+      const raw = localStorage.getItem('terra_guard_live_coords');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.lat === 'number' && typeof parsed?.lon === 'number') {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+  const [isGpsLocked, setIsGpsLocked] = useState<boolean>(() => {
+    try {
+      return Boolean(localStorage.getItem('terra_guard_live_coords'));
+    } catch {
+      return false;
+    }
+  });
+  const [locating, setLocating] = useState(false);
 
-  // Keep selected shelter updated when scenario switches
+  // Live weather + Malaysian IPU + Live Shelters -> Dynamic Real-Life Scenario
+  const [weather, setWeather] = useState<LiveWeather | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [liveShelters, setLiveShelters] = useState<ShelterInfo[]>(SCENARIOS.safe.shelters);
+  const [liveScenario, setLiveScenario] = useState<ScenarioData>(() => ({
+    ...SCENARIOS.safe,
+    locationName: 'Kuala Lumpur',
+    locationArea: 'Wilayah Persekutuan, Malaysia',
+    lat: DEFAULT_MY_COORDS.lat,
+    lon: DEFAULT_MY_COORDS.lon,
+    isLive: true
+  }));
+
+  const currentScenario = liveScenario;
+  const [selectedShelter, setSelectedShelter] = useState<ShelterInfo>(currentScenario.shelters[0]);
+
   useEffect(() => {
-    setSelectedShelter(currentScenario.shelters[0]);
-  }, [currentScenario]);
+    if (currentScenario.shelters.length > 0) {
+      setSelectedShelter(currentScenario.shelters[0]);
+    }
+  }, [currentScenario.nearestShelterId, currentScenario.lat, currentScenario.lon]);
 
   // Offline checklist state with localStorage
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => {
@@ -146,59 +188,132 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSoundEnabled(prev => !prev);
   };
 
-  // ---------- Live weather (OpenWeatherMap) ----------
-  const [weather, setWeather] = useState<LiveWeather | null>(null);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [locating, setLocating] = useState(false);
+  const activeCoords = userLocation ?? DEFAULT_MY_COORDS;
 
-  const weatherCoords = userLocation ?? { lat: currentScenario.lat, lon: currentScenario.lon };
-
-  const loadWeather = useCallback(async () => {
+  const loadWeatherAndRisk = useCallback(async (coordsOverride?: { lat: number; lon: number }) => {
+    const target = coordsOverride ?? activeCoords;
     if (!hasWeatherKey()) {
       setWeatherError('missing-key');
       return;
     }
     try {
-      const w = await fetchLiveWeather(weatherCoords.lat, weatherCoords.lon, language);
+      const w = await fetchLiveWeather(target.lat, target.lon, language);
       setWeather(w);
       setWeatherError(null);
+
+      const shelters = await fetchNearbyRealShelters(target.lat, target.lon, w.placeName);
+      setLiveShelters(shelters);
+
+      const dynamicScenario = buildLiveScenario(target.lat, target.lon, w, shelters);
+      setLiveScenario(dynamicScenario);
+      setScenario(dynamicScenario.riskLevel);
     } catch (e) {
       setWeatherError(e instanceof Error ? e.message : 'Weather unavailable');
     }
-  }, [weatherCoords.lat, weatherCoords.lon, language]);
+  }, [activeCoords.lat, activeCoords.lon, language]);
+
+  // Recompute scenario labels when weather or shelters update
+  useEffect(() => {
+    if (weather && liveShelters.length > 0) {
+      const updated = buildLiveScenario(activeCoords.lat, activeCoords.lon, weather, liveShelters);
+      setLiveScenario(updated);
+      setScenario(updated.riskLevel);
+    }
+  }, [weather, liveShelters, activeCoords.lat, activeCoords.lon]);
 
   useEffect(() => {
-    loadWeather();
-    const id = window.setInterval(loadWeather, 10 * 60 * 1000); // every 10 min
+    void loadWeatherAndRisk();
+    const id = window.setInterval(() => void loadWeatherAndRisk(), 10 * 60 * 1000);
     return () => window.clearInterval(id);
-  }, [loadWeather]);
+  }, [loadWeatherAndRisk]);
 
-  const locateMe = () => {
+  const locateMe = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setWeatherError('Geolocation not supported on this device');
       return;
     }
     setLocating(true);
+    setWeatherError(null);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setUserLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setUserLocation(coords);
+        setIsGpsLocked(true);
+        try {
+          localStorage.setItem('terra_guard_live_coords', JSON.stringify(coords));
+        } catch {
+          // ignore
+        }
         setLocating(false);
+        playChime();
+        void loadWeatherAndRisk(coords);
       },
       err => {
-        setWeatherError(err.message);
+        setWeatherError(
+          language === 'bm'
+            ? `Akses GPS ditolak (${err.message}). Sila benarkan kebenaran lokasi pada pelayar anda atau cari nama bandar.`
+            : `GPS access unavailable (${err.message}). Please allow browser location permission or search a town name.`
+        );
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
     );
+  }, [language, loadWeatherAndRisk]);
+
+  // Automatically attempt live geolocation on first visit if no coordinates saved yet
+  useEffect(() => {
+    if (!userLocation && 'geolocation' in navigator) {
+      locateMe();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const searchLocation = async (query: string): Promise<boolean> => {
+    setLocating(true);
+    setWeatherError(null);
+    try {
+      const geo = await geocodeLocationQuery(query);
+      if (!geo) {
+        setWeatherError(
+          language === 'bm'
+            ? `Lokasi "${query}" tidak ditemui. Cuba nama bandar atau daerah di Malaysia.`
+            : `Could not find "${query}". Try a Malaysian city, town, or district name.`
+        );
+        setLocating(false);
+        return false;
+      }
+      const coords = { lat: geo.lat, lon: geo.lon };
+      setUserLocation(coords);
+      setIsGpsLocked(true);
+      try {
+        localStorage.setItem('terra_guard_live_coords', JSON.stringify(coords));
+      } catch {
+        // ignore
+      }
+      await loadWeatherAndRisk(coords);
+      playChime();
+      setLocating(false);
+      return true;
+    } catch {
+      setLocating(false);
+      return false;
+    }
   };
 
-  const clearMyLocation = () => setUserLocation(null);
+  const clearMyLocation = () => {
+    setUserLocation(null);
+    setIsGpsLocked(false);
+    try {
+      localStorage.removeItem('terra_guard_live_coords');
+    } catch {
+      // ignore
+    }
+  };
 
   const refreshFeeds = async () => {
     setIsRefreshing(true);
     playChime();
-    await loadWeather();
+    await loadWeatherAndRisk();
     setIsRefreshing(false);
   };
 
@@ -207,17 +322,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: 'm-init',
       sender: 'assistant',
-      text: language === 'bm' 
-        ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan.'
-        : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any emergency question.',
+      text:
+        language === 'bm'
+          ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan (banjir, jerebu IPU, ribut, atau pusat pemindahan).'
+          : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any live emergency question (floods, haze IPU, storms, or shelters).',
       timestamp: 'Just now',
-      suggestions: language === 'bm'
-        ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
-        : ['What to pack right now?', 'Can I drive through water?', 'Electrical safety']
+      suggestions:
+        language === 'bm'
+          ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
+          : ['What to pack right now?', 'Can I drive through water?', 'Electrical safety']
     }
   ]);
 
-  // Handle language switch for the initial message if unmodified
   useEffect(() => {
     setMessages(prev => {
       if (prev.length === 1 && prev[0].id === 'm-init') {
@@ -225,13 +341,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           {
             id: 'm-init',
             sender: 'assistant',
-            text: language === 'bm' 
-              ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan.'
-              : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any emergency question.',
+            text:
+              language === 'bm'
+                ? 'Selamat datang ke Bantuan Keselamatan Terra Guard V2. Pilih topik atau tanya sebarang panduan kecemasan (banjir, jerebu IPU, ribut, atau pusat pemindahan).'
+                : 'Welcome to Terra Guard V2 Safety Assistant. Select a topic below or ask any live emergency question (floods, haze IPU, storms, or shelters).',
             timestamp: 'Just now',
-            suggestions: language === 'bm'
-              ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
-              : ['What to pack right now?', 'Can I drive through water?', 'Electrical safety']
+            suggestions:
+              language === 'bm'
+                ? ['Apa patut dikemas?', 'Boleh pandu kereta redah air?', 'Keselamatan elektrik']
+                : ['What to pack right now?', 'Can I drive through water?', 'Electrical safety']
           }
         ];
       }
@@ -249,7 +367,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const trimmed = userText.trim();
     if (!trimmed) return;
 
-    // Handle quick-action navigation chips if clicked
     const lower = trimmed.toLowerCase();
     if (lower === 'view nearest open shelter' || lower === 'lihat pusat pemindahan terdekat') {
       setActiveTab('map');
@@ -275,7 +392,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       scenario: currentScenario,
       selectedShelter,
       weather,
-      userLocation
+      userLocation: activeCoords
     });
 
     const assistantMsg: ChatMessage = {
@@ -297,13 +414,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const askAssistantDirectly = (promptKey: 'pack' | 'drive' | 'power' | 'trapped') => {
     setActiveTab('assistant');
-    const userPrompt = promptKey === 'pack'
-      ? (language === 'bm' ? 'Apa yang patut saya kemas sekarang?' : 'What should I pack right now?')
-      : promptKey === 'drive'
-      ? (language === 'bm' ? 'Bolehkah saya pandu kereta redah air?' : 'Can I drive through water?')
-      : promptKey === 'power'
-      ? (language === 'bm' ? 'Perlukah tutup suis utama elektrik?' : 'Should I switch off the main breaker?')
-      : (language === 'bm' ? 'Apa tindakan jika air masuk rumah?' : 'What if water enters my house?');
+    const userPrompt =
+      promptKey === 'pack'
+        ? language === 'bm'
+          ? 'Apa yang patut saya kemas sekarang?'
+          : 'What should I pack right now?'
+        : promptKey === 'drive'
+          ? language === 'bm'
+            ? 'Bolehkah saya pandu kereta redah air?'
+            : 'Can I drive through water?'
+          : promptKey === 'power'
+            ? language === 'bm'
+              ? 'Perlukah tutup suis utama elektrik?'
+              : 'Should I switch off the main breaker?'
+            : language === 'bm'
+              ? 'Apa tindakan jika air masuk rumah?'
+              : 'What if water enters my house?';
 
     void sendChatMessage(userPrompt);
   };
@@ -359,7 +485,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Apply visual theme to document root whenever themeId or visual overrides change
   useEffect(() => {
     const themeConfig = getThemeById(themeId);
     applyTheme(themeConfig, reduceEffects, reduceMotion);
@@ -373,7 +498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('[AppContext] Could not save theme to localStorage:', e);
     }
     if (user && !isGuest) {
-      updateDoc(doc(db, 'users', user.uid), { themeId: newId }).catch((err) => {
+      updateDoc(doc(db, 'users', user.uid), { themeId: newId }).catch(err => {
         console.warn('[AppContext] Could not sync theme to Firestore:', err);
       });
     }
@@ -424,7 +549,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
 
-  // Synchronize when auth userProfile resolves from Firestore
   useEffect(() => {
     if (userProfile?.fullName) {
       setDisplayNameState(userProfile.fullName);
@@ -486,8 +610,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         weather,
         weatherError,
         userLocation,
+        isGpsLocked,
         locating,
         locateMe,
+        searchLocation,
         clearMyLocation,
         checklist,
         toggleChecklistItem,

@@ -1,13 +1,13 @@
 import React from 'react';
-import { CloudRain, Droplets, Wind, Thermometer, LocateFixed, X, RotateCw, Radio } from 'lucide-react';
+import { CloudRain, Droplets, Wind, Thermometer, LocateFixed, RotateCw, Radio, Eye } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { iconUrl, rainOutlook } from '../services/weather';
+import { iconUrl, rainOutlook, getIpuMeta } from '../services/weather';
 
 const OUTLOOK_TEXT = {
-  none: { en: 'No rain expected in next 24h', bm: 'Tiada hujan dijangka 24 jam akan datang', color: 'var(--safe-accent)', bg: 'var(--safe-bg)' },
-  light: { en: 'Light rain possible in next 24h', bm: 'Hujan renyai mungkin dalam 24 jam', color: 'var(--brand-primary)', bg: 'var(--brand-surface)' },
-  moderate: { en: 'Moderate rain expected - watch drains & low roads', bm: 'Hujan sederhana dijangka - awasi longkang & jalan rendah', color: 'var(--advisory-accent)', bg: 'var(--advisory-bg)' },
-  heavy: { en: 'Heavy rain / thunderstorm - flash flood risk rises', bm: 'Hujan lebat / ribut petir - risiko banjir kilat meningkat', color: 'var(--danger-accent)', bg: 'var(--danger-bg)' }
+  none: { en: 'No rain expected in next 24h', bm: 'Tiada hujan dijangka 24 jam akan datang', color: 'var(--safe-text)', bg: 'var(--safe-bg)', border: 'var(--safe-border)' },
+  light: { en: 'Light rain possible in next 24h', bm: 'Hujan renyai mungkin dalam 24 jam', color: 'var(--brand-primary)', bg: 'var(--brand-surface)', border: 'var(--brand-border)' },
+  moderate: { en: 'Moderate rain expected - watch drains & low roads', bm: 'Hujan sederhana dijangka - awasi longkang & jalan rendah', color: 'var(--advisory-text)', bg: 'var(--advisory-bg)', border: 'var(--advisory-border)' },
+  heavy: { en: 'Heavy rain / thunderstorm - flash flood risk rises', bm: 'Hujan lebat / ribut petir - risiko banjir kilat meningkat', color: 'var(--danger-text)', bg: 'var(--danger-bg)', border: 'var(--danger-border)' }
 } as const;
 
 function timeAgo(ms: number, bm: boolean) {
@@ -17,13 +17,13 @@ function timeAgo(ms: number, bm: boolean) {
 }
 
 export const LiveWeatherCard: React.FC = () => {
-  const { weather, weatherError, language, userLocation, locating, locateMe, clearMyLocation, refreshFeeds, isRefreshing } = useApp();
+  const { weather, weatherError, language, locating, locateMe, refreshFeeds, isRefreshing } = useApp();
   const bm = language === 'bm';
 
   if (weatherError === 'missing-key') {
     return (
       <div className="section-card weather-card">
-        <div className="section-title"><CloudRain size={16} /> <span>{bm ? 'Cuaca Langsung' : 'Live Weather'}</span></div>
+        <div className="section-title"><CloudRain size={16} /> <span>{bm ? 'Cuaca & Jerebu (IPU) Langsung' : 'Live Weather & Haze (IPU)'}</span></div>
         <p className="weather-muted">Add <code>VITE_OPENWEATHER_API_KEY</code> to <code>.env.local</code>.</p>
       </div>
     );
@@ -32,20 +32,21 @@ export const LiveWeatherCard: React.FC = () => {
   if (!weather) {
     return (
       <div className="section-card weather-card">
-        <div className="section-title"><CloudRain size={16} /> <span>{bm ? 'Cuaca Langsung' : 'Live Weather'}</span></div>
-        <p className="weather-muted">{weatherError ? `⚠️ ${weatherError}` : (bm ? 'Memuatkan data cuaca…' : 'Loading live weather…')}</p>
+        <div className="section-title"><CloudRain size={16} /> <span>{bm ? 'Cuaca & Jerebu (IPU) Langsung' : 'Live Weather & Haze (IPU)'}</span></div>
+        <p className="weather-muted">{weatherError ? `⚠️ ${weatherError}` : (bm ? 'Memuatkan telemetri cuaca & IPU…' : 'Loading live weather & IPU telemetry…')}</p>
       </div>
     );
   }
 
   const outlook = OUTLOOK_TEXT[rainOutlook(weather)];
+  const ipuMeta = getIpuMeta(weather.ipuCategory, bm);
 
   return (
     <div className="section-card weather-card">
       <div className="weather-card__head">
         <div className="section-title" style={{ marginBottom: 0 }}>
           <Radio size={16} color="var(--danger-accent)" className="weather-live-dot" />
-          <span>{bm ? 'Cuaca Langsung' : 'Live Weather'}</span>
+          <span>{bm ? 'Cuaca & Jerebu (IPU) Langsung' : 'Live Weather & Haze (IPU)'}</span>
         </div>
         <button className="weather-icon-btn" onClick={refreshFeeds} disabled={isRefreshing} title={bm ? 'Muat semula' : 'Refresh'}>
           <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
@@ -54,14 +55,26 @@ export const LiveWeatherCard: React.FC = () => {
 
       <div className="weather-card__place">
         📍 {weather.placeName || '—'} · {bm ? 'dikemas kini' : 'updated'} {timeAgo(weather.fetchedAt, bm)}
-        {userLocation ? (
-          <button className="weather-link-btn" onClick={clearMyLocation}><X size={11} /> {bm ? 'Guna lokasi senario' : 'Use scenario location'}</button>
-        ) : (
-          <button className="weather-link-btn" onClick={locateMe} disabled={locating}>
-            <LocateFixed size={11} /> {locating ? (bm ? 'Mencari…' : 'Locating…') : (bm ? 'Guna lokasi saya' : 'Use my location')}
-          </button>
-        )}
+        <button className="weather-link-btn" onClick={locateMe} disabled={locating}>
+          <LocateFixed size={11} /> {locating ? (bm ? 'Mengimbas GPS…' : 'Scanning GPS…') : (bm ? 'Kemas kini GPS saya' : 'Update my GPS')}
+        </button>
       </div>
+
+      {weatherError && (
+        <div
+          style={{
+            fontSize: '11.5px',
+            padding: '8px 10px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--advisory-bg)',
+            color: 'var(--advisory-text)',
+            border: '1px solid var(--advisory-border)',
+            fontWeight: 600
+          }}
+        >
+          ⚠️ {weatherError}
+        </div>
+      )}
 
       <div className="weather-card__main">
         <img src={iconUrl(weather.icon)} alt={weather.description} width={64} height={64} />
@@ -78,10 +91,50 @@ export const LiveWeatherCard: React.FC = () => {
         <span><CloudRain size={13} /> {weather.rain1hMm.toFixed(1)} mm/h</span>
       </div>
 
-      <div className="weather-outlook" style={{ color: outlook.color, background: outlook.bg }}>
-        {bm ? outlook.bm : outlook.en}
+      {/* Malaysian DOE IPU (Indeks Pencemaran Udara / Haze Index) Box */}
+      <div
+        className="weather-outlook"
+        style={{
+          color: ipuMeta.color,
+          background: ipuMeta.bg,
+          border: `1px solid ${ipuMeta.border}`
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}>
+            <Eye size={14} />
+            {bm ? 'Indeks Jerebu (IPU Malaysia):' : 'Haze Index (Malaysia IPU):'} {weather.ipuIndex}
+          </span>
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              padding: '2px 7px',
+              borderRadius: 'var(--radius-full)',
+              border: `1px solid ${ipuMeta.border}`,
+              background: 'var(--bg-surface)',
+              color: ipuMeta.color
+            }}
+          >
+            {ipuMeta.label}
+          </span>
+        </div>
+        <span className="weather-outlook__meta">
+          {ipuMeta.advice} (PM2.5: {weather.pm25} µg/m³ · PM10: {weather.pm10} µg/m³)
+        </span>
+      </div>
+
+      {/* Rain & Flood Outlook Box */}
+      <div
+        className="weather-outlook"
+        style={{ color: outlook.color, background: outlook.bg, border: `1px solid ${outlook.border}` }}
+      >
+        <span>{bm ? outlook.bm : outlook.en}</span>
         <span className="weather-outlook__meta">
           {bm ? 'Jumlah 24j' : '24h total'}: {weather.rain24hMm.toFixed(1)} mm · {bm ? 'Peluang maks' : 'Max chance'}: {Math.round(weather.maxRainChance * 100)}%
+          {weather.riverDischargeM3s !== null && (
+            <> · {bm ? 'Aliran sungai' : 'River flow'}: {weather.riverDischargeM3s.toFixed(0)} m³/s</>
+          )}
         </span>
       </div>
 
@@ -98,8 +151,8 @@ export const LiveWeatherCard: React.FC = () => {
 
       <div className="weather-source">
         {bm
-          ? 'Sumber: OpenWeather. Penunjuk sahaja - rujuk amaran rasmi MetMalaysia / NADMA.'
-          : 'Source: OpenWeather. Indicator only - follow official MetMalaysia / NADMA warnings.'}
+          ? 'Sumber: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Rujuk MetMalaysia / JAS (APIMS) / NADMA.'
+          : 'Sources: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Follow official MetMalaysia / DOE APIMS / NADMA alerts.'}
       </div>
     </div>
   );

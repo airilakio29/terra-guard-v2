@@ -14,6 +14,7 @@
   --text-secondary: #334155;
   --text-muted: #64748B;
   --text-inverse: #FFFFFF;
+  --on-vivid: #FFFFFF;
   
   /* Status Tier: Safe (Emerald) */
   --safe-bg: #ECFDF5;
@@ -1173,12 +1174,6 @@ select,
 .shelter-sheet-sub,
 .auth-subtitle,
 .splash-subtitle {
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--splash-text-muted);
-  letter-spacing: 0.3px;
-  margin: 0 0 16px;
-  animation: splashTextIn 0.6s ease-out 0.3s both;
   font-family: var(--font-body);
 }
 
@@ -1564,17 +1559,17 @@ html, body {
 
 .status-card--safe .status-card__icon-badge {
   background: var(--safe-badge);
-  color: var(--text-inverse);
+  color: var(--on-vivid);
 }
 
 .status-card--advisory .status-card__icon-badge {
   background: var(--advisory-badge);
-  color: var(--text-inverse);
+  color: var(--on-vivid);
 }
 
 .status-card--danger .status-card__icon-badge {
   background: var(--danger-badge);
-  color: var(--text-inverse);
+  color: var(--on-vivid);
 }
 
 .status-card__headline {
@@ -1582,6 +1577,7 @@ html, body {
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: -0.3px;
+  color: inherit;
 }
 
 .status-card__badge-pill {
@@ -1598,31 +1594,42 @@ html, body {
 .status-card--safe .status-card__badge-pill {
   background: var(--safe-bg);
   color: var(--safe-text);
+  border: 1px solid var(--safe-border);
 }
 
 .status-card--advisory .status-card__badge-pill {
   background: var(--advisory-bg);
   color: var(--advisory-text);
+  border: 1px solid var(--advisory-border);
 }
 
 .status-card--danger .status-card__badge-pill {
   background: var(--danger-bg);
   color: var(--danger-text);
+  border: 1px solid var(--danger-border);
 }
 
 .status-card__directive {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.45;
-  margin-bottom: 12px;
+  margin: 0 0 12px;
+  color: inherit;
 }
 
 .status-card__summary {
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.5;
-  opacity: 0.92;
+  color: inherit;
+  margin: 0;
   padding-top: 10px;
   border-top: 1px dashed currentColor;
+}
+
+.status-card__summary strong {
+  color: inherit;
+  font-weight: 800;
 }
 
 /* Primary Action CTA Card */
@@ -1774,15 +1781,16 @@ html, body {
 
 .sos-banner-strip__btn {
   background: var(--danger-accent);
-  color: var(--text-inverse);
+  color: var(--on-vivid);
   border: none;
   border-radius: var(--radius-md);
   padding: 8px 14px;
   font-weight: 800;
   font-size: 12px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   font-family: inherit;
   box-shadow: var(--shadow-sm);
@@ -2289,19 +2297,36 @@ html, body {
 
 .hotline-call-btn {
   background: var(--danger-accent);
-  color: var(--text-inverse);
+  color: var(--on-vivid);
   border: none;
   border-radius: var(--radius-md);
-  padding: 8px 14px;
+  padding: 8px 16px;
+  min-width: 78px;
+  height: 36px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  text-align: center;
   text-decoration: none;
   font-family: inherit;
   transition: all var(--transition-fast);
+}
+
+.hotline-call-btn svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.hotline-call-btn span {
+  color: inherit;
+  line-height: 1;
+  margin: 0;
+  display: inline-block;
 }
 
 .hotline-call-btn:active {
@@ -2393,8 +2418,9 @@ html, body {
 .weather-card__desc { font-size: 13px; text-transform: capitalize; color: var(--text-secondary); margin-top: 2px; }
 .weather-card__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .weather-card__stats span { display: flex; align-items: center; gap: 4px; background: var(--bg-subtle); border-radius: 8px; padding: 6px; justify-content: center; }
-.weather-outlook { font-size: 13px; font-weight: 700; padding: 10px 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 2px; }
-.weather-outlook__meta { font-size: 11px; font-weight: 500; opacity: .85; }
+.weather-outlook { font-size: 13px; font-weight: 700; padding: 10px 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 3px; }
+.weather-outlook > span { color: inherit; margin: 0; }
+.weather-outlook__meta { font-size: 11.5px; font-weight: 600; color: inherit; opacity: 0.92; margin: 0; }
 .weather-forecast { display: flex; gap: 6px; overflow-x: auto; }
 .weather-forecast__slot { flex: 1 0 56px; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--text-secondary); background: var(--bg-subtle); border-radius: 10px; padding: 6px 4px; }
 .weather-forecast__pop { color: var(--brand-primary); font-weight: 600; }
@@ -3755,7 +3781,7 @@ body,
 
 .guest-upgrade-banner__content p {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--advisory-text);
   line-height: 1.45;
   margin-bottom: 10px;
 }

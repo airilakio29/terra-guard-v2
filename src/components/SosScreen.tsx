@@ -68,10 +68,12 @@ export const SosScreen: React.FC = () => {
                     border: '1px solid var(--border-subtle)',
                     background: 'var(--bg-subtle)',
                     borderRadius: 'var(--radius-md)',
-                    padding: '8px',
+                    width: '36px',
+                    height: '36px',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   {copiedId === c.id ? <CheckCheck size={16} color="var(--safe-accent)" /> : <Copy size={16} color="var(--text-muted)" />}

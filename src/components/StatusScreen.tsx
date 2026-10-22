@@ -1,86 +1,132 @@
 import React from 'react';
-import { 
-  MapPin, 
-  RotateCw, 
-  CheckCircle2, 
-  AlertTriangle, 
-  AlertOctagon, 
-  ArrowRight, 
-  ShieldCheck, 
-  PhoneCall, 
+import {
+  MapPin,
+  RotateCw,
+  CheckCircle2,
+  AlertTriangle,
+  AlertOctagon,
+  ArrowRight,
+  ShieldCheck,
+  PhoneCall,
   MessageSquareQuote,
   Flame,
   ChevronRight,
-  Compass
+  Compass,
+  LocateFixed,
+  Wind
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LiveWeatherCard } from './LiveWeatherCard';
 
 export const StatusScreen: React.FC = () => {
-  const { 
-    language, 
-    currentScenario, 
-    isRefreshing, 
-    refreshFeeds, 
-    setActiveTab, 
-    setSelectedShelter, 
+  const {
+    language,
+    currentScenario,
+    isRefreshing,
+    refreshFeeds,
+    setActiveTab,
+    setSelectedShelter,
     t,
     askAssistantDirectly,
-    weather
+    weather,
+    locating,
+    isGpsLocked,
+    locateMe
   } = useApp();
 
   const isSafe = currentScenario.riskLevel === 'safe';
   const isAdvisory = currentScenario.riskLevel === 'advisory';
   const isDanger = currentScenario.riskLevel === 'danger';
+  const bm = language === 'bm';
 
-  const nearestShelter = currentScenario.shelters.find(
-    s => s.id === currentScenario.nearestShelterId
-  ) || currentScenario.shelters[0];
+  const nearestShelter =
+    currentScenario.shelters.find(s => s.id === currentScenario.nearestShelterId) ||
+    currentScenario.shelters[0];
 
   const handlePrimaryAction = () => {
-    if (isSafe) {
-      setActiveTab('sos'); // leads to survival kit in safe mode
-    } else {
-      setSelectedShelter(nearestShelter);
-      setActiveTab('map');
-    }
+    setSelectedShelter(nearestShelter);
+    setActiveTab('map');
   };
 
   return (
     <div className="screen-scroll-container">
-      {/* Location & Refresh Strip */}
-      <div className="location-strip">
+      {/* Location & Live GPS Strip */}
+      <div className="location-strip" style={{ flexWrap: 'wrap', gap: '8px' }}>
         <div className="location-strip__info">
           <MapPin size={18} className="location-strip__pin" />
-          <div key={`${currentScenario.id}-${language}`} className="cross-fade-text">
-            <div className="location-strip__name">{currentScenario.locationName}</div>
-            <div className="location-strip__area">{currentScenario.locationArea}</div>
+          <div key={`${currentScenario.locationName}-${language}`} className="cross-fade-text">
+            <div className="location-strip__name" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span>{currentScenario.locationName}</span>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: 'var(--radius-full)',
+                  background: isGpsLocked ? 'var(--safe-bg)' : 'var(--brand-surface)',
+                  color: isGpsLocked ? 'var(--safe-text)' : 'var(--brand-primary)',
+                  border: `1px solid ${isGpsLocked ? 'var(--safe-border)' : 'var(--brand-border)'}`
+                }}
+              >
+                {isGpsLocked ? (bm ? '📡 GPS Langsung Aktif' : '📡 Live GPS Active') : (bm ? '📍 Lokasi Lalai' : '📍 Default Area')}
+              </span>
+            </div>
+            <div className="location-strip__area">
+              {currentScenario.locationArea} · {currentScenario.lat.toFixed(4)}°N, {currentScenario.lon.toFixed(4)}°E
+            </div>
           </div>
         </div>
-        <button 
-          className="location-strip__refresh" 
-          onClick={refreshFeeds}
-          disabled={isRefreshing}
-          title={t.pullToRefresh}
-        >
-          <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
-          <span>
-            {isRefreshing
-              ? t.refreshing
-              : weather
-                ? `${language === 'bm' ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(language === 'bm' ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
-                : t.updatedAgo}
-          </span>
-        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            className="location-strip__refresh"
+            onClick={locateMe}
+            disabled={locating}
+            style={{
+              background: 'var(--brand-primary)',
+              color: 'var(--on-vivid)',
+              borderColor: 'var(--brand-primary)',
+              fontWeight: 700
+            }}
+            title={bm ? 'Kesan lokasi GPS sebenar anda' : 'Detect your real-time GPS location'}
+          >
+            <LocateFixed size={13} className={locating ? 'spin-icon' : ''} />
+            <span>
+              {locating
+                ? bm
+                  ? 'Mengimbas GPS…'
+                  : 'Scanning GPS…'
+                : bm
+                  ? 'Kesan Lokasi Saya'
+                  : 'Detect My Location'}
+            </span>
+          </button>
+
+          <button
+            className="location-strip__refresh"
+            onClick={refreshFeeds}
+            disabled={isRefreshing}
+            title={t.pullToRefresh}
+          >
+            <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
+            <span>
+              {isRefreshing
+                ? t.refreshing
+                : weather
+                  ? `${bm ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
+                  : t.updatedAgo}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Responsive Dashboard Grid (Left & Right columns on Desktop/Tablet) */}
       <div className="dashboard-grid">
         {/* Left Column: Status Card + Primary Action + Mini Map Snapshot */}
         <div className="dashboard-column">
-          {/* 1. Main Risk Status Card */}
+          {/* 1. Main Real-Life Risk Status Card */}
           <div className={`status-card status-card--${currentScenario.riskLevel}`}>
-            <div key={`${currentScenario.id}-${language}`} className="cross-fade-text">
+            <div key={`${currentScenario.id}-${currentScenario.locationName}-${language}`} className="cross-fade-text">
               <div className="status-card__header">
                 <div className="status-card__icon-badge">
                   {isSafe && <CheckCircle2 size={24} />}
@@ -88,45 +134,69 @@ export const StatusScreen: React.FC = () => {
                   {isDanger && <AlertOctagon size={24} />}
                 </div>
                 <div>
-                  <span className="status-card__badge-pill">
-                    {isSafe ? (language === 'bm' ? 'SELAMAT' : 'ALL CLEAR') :
-                     isAdvisory ? (language === 'bm' ? 'PERINGATAN AWAL' : 'ADVISORY') :
-                     (language === 'bm' ? 'BAHAYA KRITIKAL' : 'CRITICAL DANGER')}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                    <span className="status-card__badge-pill" style={{ marginBottom: 0 }}>
+                      {isSafe
+                        ? bm
+                          ? 'HARI BIASA • SELAMAT'
+                          : 'NORMAL DAY • ALL CLEAR'
+                        : isAdvisory
+                          ? bm
+                            ? 'AMARAN AWAL (CUACA / JEREBU)'
+                            : 'ADVISORY WATCH'
+                          : bm
+                            ? 'BAHAYA KRITIKAL'
+                            : 'CRITICAL DANGER'}
+                    </span>
+                    {weather && (
+                      <span
+                        className="status-card__badge-pill"
+                        style={{
+                          marginBottom: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Wind size={11} />
+                        <span>IPU {weather.ipuIndex}</span>
+                      </span>
+                    )}
+                  </div>
                   <h1 className="status-card__headline">
-                    {language === 'bm' ? currentScenario.headlineBm : currentScenario.headlineEn}
+                    {bm ? currentScenario.headlineBm : currentScenario.headlineEn}
                   </h1>
                 </div>
               </div>
 
               <p className="status-card__directive">
-                {language === 'bm' ? currentScenario.directiveBm : currentScenario.directiveEn}
+                {bm ? currentScenario.directiveBm : currentScenario.directiveEn}
               </p>
 
               <div className="status-card__summary">
-                <strong>{language === 'bm' ? 'Situasi Semasa: ' : 'Official SITREP: '}</strong>
-                {language === 'bm' ? currentScenario.hazardSummaryBm : currentScenario.hazardSummaryEn}
+                <strong>{bm ? 'Laporan Telemetri Semasa: ' : 'Live Telemetry SITREP: '}</strong>
+                {bm ? currentScenario.hazardSummaryBm : currentScenario.hazardSummaryEn}
               </div>
             </div>
           </div>
 
           {/* 2. Primary Action CTA Card (Thumb-Reachable) */}
-          <div 
+          <div
             className="primary-action-card"
             onClick={handlePrimaryAction}
             role="button"
             tabIndex={0}
           >
-            <div key={`${currentScenario.id}-${language}`} className="primary-action-card__content cross-fade-text">
+            <div key={`${currentScenario.id}-${currentScenario.locationName}-${language}`} className="primary-action-card__content cross-fade-text">
               <div className="primary-action-card__icon">
                 {isSafe ? <ShieldCheck size={24} /> : <ArrowRight size={24} />}
               </div>
               <div>
                 <div className="primary-action-card__title">
-                  {language === 'bm' ? currentScenario.primaryActionBm : currentScenario.primaryActionEn}
+                  {bm ? currentScenario.primaryActionBm : currentScenario.primaryActionEn}
                 </div>
                 <div className="primary-action-card__subtitle">
-                  {language === 'bm' ? currentScenario.primaryActionSubtitleBm : currentScenario.primaryActionSubtitleEn}
+                  {bm ? currentScenario.primaryActionSubtitleBm : currentScenario.primaryActionSubtitleEn}
                 </div>
               </div>
             </div>
@@ -134,22 +204,22 @@ export const StatusScreen: React.FC = () => {
           </div>
 
           {/* 3. Live Spatial Radar Preview Card */}
-          <div 
-            className="section-card" 
+          <div
+            className="section-card"
             style={{ cursor: 'pointer', background: 'var(--bg-surface)' }}
             onClick={() => setActiveTab('map')}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div className="section-title" style={{ marginBottom: 0 }}>
                 <Compass size={16} color="var(--brand-primary)" />
-                <span>{language === 'bm' ? 'Peta Pantas Situasi' : 'Live Situation Radar'}</span>
+                <span>{bm ? 'Peta Pantas Situasi' : 'Live Situation Radar'}</span>
               </div>
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                {language === 'bm' ? 'Buka Peta Penuh' : 'Open Full Map'} <ChevronRight size={14} />
+                {bm ? 'Buka Peta Penuh' : 'Open Full Map'} <ChevronRight size={14} />
               </span>
             </div>
 
-            <div 
+            <div
               style={{
                 position: 'relative',
                 height: '110px',
@@ -177,13 +247,13 @@ export const StatusScreen: React.FC = () => {
 
                 {/* Nearest Shelter */}
                 <circle cx="75" cy="14" r="3.5" fill="var(--map-shelter-pin)" stroke="var(--bg-surface)" strokeWidth="1" />
-                <text x="75" y="15.2" textAnchor="middle" fill="var(--text-inverse)" fontSize="2.8" fontWeight="bold">H</text>
+                <text x="75" y="15.2" textAnchor="middle" fill="var(--on-vivid)" fontSize="2.8" fontWeight="bold">H</text>
 
                 {/* Route */}
                 <path d="M 28 22 Q 48 26, 75 14" fill="none" stroke="var(--map-route)" strokeWidth="1" strokeDasharray="2 1" />
               </svg>
 
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   bottom: '6px',
@@ -198,18 +268,19 @@ export const StatusScreen: React.FC = () => {
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                📍 {language === 'bm' ? 'Laluan selamat ke PPS: 850m' : 'Safe route to shelter: 850m'}
+                📍 {bm ? `PPS Terdekat: ${nearestShelter.distanceKm} km` : `Nearest Shelter: ${nearestShelter.distanceKm} km`}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Hazards Nearby + AI Quick Guidance + Emergency SOS */}
+        {/* Right Column: Live Weather + IPU Haze + Hazards Nearby + AI Quick Guidance + Emergency SOS */}
         <div className="dashboard-column">
-          {/* Live Weather (OpenWeatherMap) */}
+          {/* Live Weather & Malaysian IPU Haze Monitor */}
           <LiveWeatherCard />
-          {/* 4. Active Hazards (Plain List, No Complex Overlays) */}
-          {currentScenario.hazards.length > 0 && (
+
+          {/* 4. Active Hazards OR All-Clear Confirmation */}
+          {currentScenario.hazards.length > 0 ? (
             <div className="section-card">
               <div className="section-title">
                 <Flame size={16} color="var(--danger-accent)" />
@@ -218,28 +289,56 @@ export const StatusScreen: React.FC = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {currentScenario.hazards.map(h => (
-                  <div 
+                  <div
                     key={h.id}
-                    style={{ 
-                      padding: '10px 12px', 
-                      borderRadius: 'var(--radius-sm)', 
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 'var(--radius-sm)',
                       background: 'var(--bg-subtle)',
                       borderLeft: `4px solid ${h.severity === 'danger' ? 'var(--danger-accent)' : 'var(--advisory-accent)'}`
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {language === 'bm' ? h.titleBm : h.title}
+                      {bm ? h.titleBm : h.title}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                      {language === 'bm' ? h.descriptionBm : h.descriptionEn}
+                      {bm ? h.descriptionBm : h.descriptionEn}
                     </div>
                     {h.waterDepthMeters && (
                       <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-accent)', marginTop: '4px' }}>
                         ⚠️ {t.waterDepth}: ~{h.waterDepthMeters}m
                       </div>
                     )}
+                    {h.ipuValue && (
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--advisory-accent)', marginTop: '4px' }}>
+                        🌫️ {bm ? 'Bacaan IPU Semasa' : 'Live IPU Reading'}: {h.ipuValue}
+                      </div>
+                    )}
                   </div>
                 ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="section-card"
+              style={{
+                background: 'var(--safe-bg)',
+                borderColor: 'var(--safe-border)',
+                color: 'var(--safe-text)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: '13px' }}>
+                <CheckCircle2 size={17} />
+                <span>
+                  {bm
+                    ? 'Tiada Bahaya Banjir, Ribut atau Jerebu Dikesan'
+                    : 'No Active Flood, Storm, or Haze Hazards Detected'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', marginTop: '4px', fontWeight: 600 }}>
+                {bm
+                  ? `Semua penunjuk cuaca, paras sungai, dan IPU jerebu (${weather ? `IPU ${weather.ipuIndex}` : 'Normal'}) berada pada paras selamat di sekitar ${currentScenario.locationName}.`
+                  : `All rainfall, river basin, and Malaysian IPU haze indicators (${weather ? `IPU ${weather.ipuIndex}` : 'Normal'}) are within safe normal-day thresholds around ${currentScenario.locationName}.`}
               </div>
             </div>
           )}
@@ -251,28 +350,28 @@ export const StatusScreen: React.FC = () => {
               <span>{t.quickQuestionsTitle}</span>
             </div>
             <div className="chips-container">
-              <button 
+              <button
                 className="chip-button"
                 onClick={() => askAssistantDirectly('pack')}
               >
                 <span>🎒 {t.chipPack}</span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
-              <button 
+              <button
                 className="chip-button"
                 onClick={() => askAssistantDirectly('drive')}
               >
                 <span>🚗 {t.chipDrive}</span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
-              <button 
+              <button
                 className="chip-button"
                 onClick={() => askAssistantDirectly('power')}
               >
                 <span>⚡ {t.chipPower}</span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </button>
-              <button 
+              <button
                 className="chip-button"
                 onClick={() => askAssistantDirectly('trapped')}
               >
@@ -283,7 +382,7 @@ export const StatusScreen: React.FC = () => {
           </div>
 
           {/* 6. Emergency SOS Direct Call Strip */}
-          <div 
+          <div
             className="sos-banner-strip"
             onClick={() => setActiveTab('sos')}
             role="button"

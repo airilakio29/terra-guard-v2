@@ -2,6 +2,8 @@ export type Language = 'en' | 'bm';
 
 export type RiskLevel = 'safe' | 'advisory' | 'danger';
 
+export type IpuCategory = 'good' | 'moderate' | 'unhealthy' | 'very-unhealthy' | 'hazardous';
+
 export interface ShelterInfo {
   id: string;
   name: string;
@@ -16,20 +18,25 @@ export interface ShelterInfo {
   address: string;
   phone: string;
   amenities: ('food' | 'water' | 'medical' | 'bedding' | 'power')[];
-  coords: { x: number; y: number }; // Relative map coordinates (0-100)
+  coords: { x: number; y: number }; // Relative map coordinates (0-100) for SVG fallback
+  lat?: number;
+  lon?: number;
 }
 
 export interface HazardZone {
   id: string;
   title: string;
   titleBm: string;
-  type: 'flood' | 'storm' | 'roadblock';
+  type: 'flood' | 'storm' | 'roadblock' | 'haze' | 'landslide';
   severity: RiskLevel;
   waterDepthMeters?: number;
+  ipuValue?: number;
   affectedRoads: string[];
   descriptionEn: string;
   descriptionBm: string;
   coords: { x: number; y: number; radius: number };
+  lat?: number;
+  lon?: number;
 }
 
 export interface ScenarioData {
@@ -50,9 +57,10 @@ export interface ScenarioData {
   nearestShelterId: string;
   hazards: HazardZone[];
   shelters: ShelterInfo[];
-  /** Real-world centre of the scenario area (verified via OpenWeather geocoding) */
+  /** Real-world centre of the scenario area (verified via GPS / OpenWeather geocoding) */
   lat: number;
   lon: number;
+  isLive?: boolean;
 }
 
 export interface WeatherForecastSlot {
@@ -65,6 +73,7 @@ export interface WeatherForecastSlot {
 
 export interface LiveWeather {
   placeName: string;
+  districtArea?: string;
   description: string;
   icon: string;
   conditionId: number;
@@ -78,6 +87,15 @@ export interface LiveWeather {
   forecast: WeatherForecastSlot[];
   observedAt: number;
   fetchedAt: number;
+  /** Malaysian DOE IPU (Indeks Pencemaran Udara / Air Pollution Index, 0-500+) */
+  ipuIndex: number;
+  ipuCategory: IpuCategory;
+  pm25: number;
+  pm10: number;
+  dominantPollutant: 'PM2.5' | 'PM10' | 'O3' | 'CO' | 'NO2' | 'SO2';
+  /** Live river discharge from Open-Meteo GloFAS Flood API (m3/s) */
+  riverDischargeM3s: number | null;
+  riverDischargeMeanM3s: number | null;
 }
 
 export interface ChatMessage {

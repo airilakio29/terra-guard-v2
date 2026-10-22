@@ -194,7 +194,9 @@ async function researchSingleLocation(
 
   if (wx) {
     targetWeather = wx;
-    sources.push(`OpenWeather (${placeQuery || wx.placeName}: ${Math.round(wx.tempC)}°C, ${wx.rain24hMm.toFixed(1)}mm/24h)`);
+    sources.push(
+      `OpenWeather & DOE IPU (${placeQuery || wx.placeName}: ${Math.round(wx.tempC)}°C, ${wx.rain24hMm.toFixed(1)}mm/24h, IPU ${wx.ipuIndex} · PM2.5 ${wx.pm25} µg/m³)`
+    );
   }
 
   let riverDischargeM3s: number | null = null;
@@ -370,7 +372,7 @@ export async function askSafetyAi(userText: string, ctx: SafetyAiContext): Promi
         `[LOCATION ${idx + 1}: ${tel.locationLabel} (Coords: ${tel.lat.toFixed(4)}, ${tel.lon.toFixed(4)})]`,
         tel.elevationM !== null ? `- Terrain Elevation: ${Math.round(tel.elevationM)} meters above sea level` : null,
         wx
-          ? `- Live OpenWeather Telemetry: ${Math.round(wx.tempC)}°C (feels like ${Math.round(wx.feelsLikeC)}°C), condition: "${wx.description}", humidity: ${wx.humidity}%, wind: ${(wx.windMs * 3.6).toFixed(0)} km/h, current 1h rain: ${wx.rain1hMm.toFixed(1)} mm, next 24h forecast total rain: ${wx.rain24hMm.toFixed(1)} mm, max rain probability: ${Math.round(wx.maxRainChance * 100)}%.`
+          ? `- Live OpenWeather & Malaysian Haze (IPU) Telemetry: ${Math.round(wx.tempC)}°C (feels like ${Math.round(wx.feelsLikeC)}°C), condition: "${wx.description}", humidity: ${wx.humidity}%, wind: ${(wx.windMs * 3.6).toFixed(0)} km/h, current 1h rain: ${wx.rain1hMm.toFixed(1)} mm, next 24h forecast total rain: ${wx.rain24hMm.toFixed(1)} mm, max rain probability: ${Math.round(wx.maxRainChance * 100)}%, Malaysian IPU (Air Pollution / Haze Index): ${wx.ipuIndex} (${wx.ipuCategory.toUpperCase()}, PM2.5: ${wx.pm25} µg/m³, PM10: ${wx.pm10} µg/m³).`
           : '- Live OpenWeather Telemetry: unavailable',
         tel.riverDischargeM3s !== null
           ? `- Live Copernicus GloFAS Satellite River Discharge: ${tel.riverDischargeM3s.toFixed(2)} m³/s today (Historical Normal Mean: ${tel.riverDischargeMeanM3s?.toFixed(2) ?? 'N/A'} m³/s, Forecast 3-Day Max: ${tel.riverDischargeMaxM3s?.toFixed(2) ?? 'N/A'} m³/s). Status: ${
@@ -412,7 +414,8 @@ ${scenarioContextBlock}
 
 VERIFIED MALAYSIAN CIVIL DEFENCE (NADMA / APM / BOMBA / JPS) RULES:
 - Emergency Hotlines: MERS 999 (Police/Ambulance), Bomba & Penyelamat 994 (Flood rescue), APM +603-8051 8888, JKM Welfare +603-8323 1396.
-- Official Portals: JPS PublicInfoBanjir (publicinfobanjir.water.gov.my) for real-time Malaysian river water-level sensors; MetMalaysia (met.gov.my) for thunderstorm/monsoon warnings.
+- Official Portals: JPS PublicInfoBanjir (publicinfobanjir.water.gov.my) for real-time Malaysian river water-level sensors; JAS APIMS (apims.doe.gov.my) for official Malaysian IPU Haze readings; MetMalaysia (met.gov.my) for thunderstorm/monsoon warnings.
+- Malaysian DOE IPU (Indeks Pencemaran Udara) Scale: 0-50 Good (Baik), 51-100 Moderate (Sederhana), 101-200 Unhealthy (Tidak Sihat — wear N95/KF94 mask outdoors, sensitive groups stay indoors), 201-300 Very Unhealthy (Sangat Tidak Sihat — stay indoors, close windows), >300 Hazardous (Berbahaya).
 - Driving Rule: 15cm of water stalls cars; 30cm of moving water floats sedans.
 - Electrical Rule: Switch OFF main MCB breaker before water reaches outlets. Never touch switches with wet hands.
 
