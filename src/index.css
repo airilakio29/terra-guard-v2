@@ -1450,6 +1450,37 @@ html, body {
   }
 }
 
+/* Force single-column mobile layout when Mobile View (440px) preview is selected on desktop */
+.app-container--mobile .dashboard-grid {
+  grid-template-columns: 1fr !important;
+  gap: 14px;
+}
+
+.app-container--mobile .weather-card__stats {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+.app-container--mobile .bottom-nav {
+  padding: 6px 8px 8px;
+}
+
+.app-container--mobile .nav-tab-btn {
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.app-container--mobile .top-bar {
+  padding: 10px 12px;
+}
+
+.app-container--mobile .top-bar__title {
+  font-size: 15px;
+}
+
+.app-container--mobile .top-bar__subtitle {
+  font-size: 10px;
+}
+
 .dashboard-column {
   display: flex;
   flex-direction: column;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   MapPin,
   RotateCw,
@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Compass,
   LocateFixed,
-  Wind
+  Wind,
+  Search
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LiveWeatherCard } from './LiveWeatherCard';
@@ -31,8 +32,12 @@ export const StatusScreen: React.FC = () => {
     weather,
     locating,
     isGpsLocked,
-    locateMe
+    locateMe,
+    searchLocation
   } = useApp();
+
+  const [showSearch, setShowSearch] = useState(false);
+  const [query, setQuery] = useState('');
 
   const isSafe = currentScenario.riskLevel === 'safe';
   const isAdvisory = currentScenario.riskLevel === 'advisory';
@@ -48,13 +53,23 @@ export const StatusScreen: React.FC = () => {
     setActiveTab('map');
   };
 
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    const ok = await searchLocation(query);
+    if (ok) {
+      setQuery('');
+      setShowSearch(false);
+    }
+  };
+
   return (
     <div className="screen-scroll-container">
-      {/* Location & Live GPS Strip */}
-      <div className="location-strip" style={{ flexWrap: 'wrap', gap: '8px' }}>
-        <div className="location-strip__info">
+      {/* Unified Location & Live GPS Strip */}
+      <div className="location-strip" style={{ flexWrap: 'wrap', gap: '10px' }}>
+        <div className="location-strip__info" style={{ minWidth: 0 }}>
           <MapPin size={18} className="location-strip__pin" />
-          <div key={`${currentScenario.locationName}-${language}`} className="cross-fade-text">
+          <div key={`${currentScenario.locationName}-${language}`} className="cross-fade-text" style={{ minWidth: 0 }}>
             <div className="location-strip__name" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <span>{currentScenario.locationName}</span>
               <span
@@ -68,7 +83,7 @@ export const StatusScreen: React.FC = () => {
                   border: `1px solid ${isGpsLocked ? 'var(--safe-border)' : 'var(--brand-border)'}`
                 }}
               >
-                {isGpsLocked ? (bm ? '📡 GPS Langsung Aktif' : '📡 Live GPS Active') : (bm ? '📍 Lokasi Lalai' : '📍 Default Area')}
+                {isGpsLocked ? (bm ? '📡 GPS Aktif' : '📡 Live GPS') : (bm ? '📍 Lalai' : '📍 Default')}
               </span>
             </div>
             <div className="location-strip__area">
@@ -77,50 +92,104 @@ export const StatusScreen: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <button
-            className="location-strip__refresh"
-            onClick={locateMe}
-            disabled={locating}
-            style={{
-              background: 'var(--brand-primary)',
-              color: 'var(--on-vivid)',
-              borderColor: 'var(--brand-primary)',
-              fontWeight: 700
-            }}
-            title={bm ? 'Kesan lokasi GPS sebenar anda' : 'Detect your real-time GPS location'}
-          >
-            <LocateFixed size={13} className={locating ? 'spin-icon' : ''} />
-            <span>
-              {locating
-                ? bm
-                  ? 'Mengimbas GPS…'
-                  : 'Scanning GPS…'
-                : bm
-                  ? 'Kesan Lokasi Saya'
-                  : 'Detect My Location'}
-            </span>
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', width: showSearch ? '100%' : 'auto' }}>
+          {showSearch ? (
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+              <input
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={bm ? 'Cari bandar (cth: Shah Alam, Kuantan)...' : 'Enter city/town (e.g. Shah Alam, Kuantan)...'}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  borderRadius: 'var(--radius-full)',
+                  border: '1px solid var(--brand-border)',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="location-strip__refresh"
+                disabled={locating}
+                style={{
+                  background: 'var(--brand-primary)',
+                  color: 'var(--on-vivid)',
+                  borderColor: 'var(--brand-primary)',
+                  fontWeight: 700
+                }}
+              >
+                {bm ? 'Semak' : 'Check'}
+              </button>
+              <button
+                type="button"
+                className="location-strip__refresh"
+                onClick={() => setShowSearch(false)}
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <>
+              <button
+                className="location-strip__refresh"
+                onClick={locateMe}
+                disabled={locating}
+                style={{
+                  background: 'var(--brand-primary)',
+                  color: 'var(--on-vivid)',
+                  borderColor: 'var(--brand-primary)',
+                  fontWeight: 700
+                }}
+                title={bm ? 'Imbas lokasi GPS sebenar anda' : 'Scan your real-time GPS location'}
+              >
+                <LocateFixed size={13} className={locating ? 'spin-icon' : ''} />
+                <span>
+                  {locating
+                    ? bm
+                      ? 'Mengimbas…'
+                      : 'Scanning…'
+                    : bm
+                      ? 'Imbas Lokasi Saya'
+                      : 'Scan My Location'}
+                </span>
+              </button>
 
-          <button
-            className="location-strip__refresh"
-            onClick={refreshFeeds}
-            disabled={isRefreshing}
-            title={t.pullToRefresh}
-          >
-            <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
-            <span>
-              {isRefreshing
-                ? t.refreshing
-                : weather
-                  ? `${bm ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
-                  : t.updatedAgo}
-            </span>
-          </button>
+              <button
+                className="location-strip__refresh"
+                onClick={() => setShowSearch(true)}
+                title={bm ? 'Semak bandar lain di Malaysia' : 'Check another town in Malaysia'}
+              >
+                <Search size={12} />
+                <span>{bm ? 'Cari Kawasan' : 'Check Area'}</span>
+              </button>
+
+              <button
+                className="location-strip__refresh"
+                onClick={refreshFeeds}
+                disabled={isRefreshing}
+                title={t.pullToRefresh}
+              >
+                <RotateCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
+                <span>
+                  {isRefreshing
+                    ? t.refreshing
+                    : weather
+                      ? `${bm ? 'Dikemas kini' : 'Updated'} ${new Date(weather.fetchedAt).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric', minute: '2-digit' })}`
+                      : t.updatedAgo}
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Responsive Dashboard Grid (Left & Right columns on Desktop/Tablet) */}
+      {/* Responsive Dashboard Grid (Single column in Mobile View, 2 columns in Dashboard/Full View) */}
       <div className="dashboard-grid">
         {/* Left Column: Status Card + Primary Action + Mini Map Snapshot */}
         <div className="dashboard-column">
@@ -133,7 +202,7 @@ export const StatusScreen: React.FC = () => {
                   {isAdvisory && <AlertTriangle size={24} />}
                   {isDanger && <AlertOctagon size={24} />}
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
                     <span className="status-card__badge-pill" style={{ marginBottom: 0 }}>
                       {isSafe
@@ -191,7 +260,7 @@ export const StatusScreen: React.FC = () => {
               <div className="primary-action-card__icon">
                 {isSafe ? <ShieldCheck size={24} /> : <ArrowRight size={24} />}
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div className="primary-action-card__title">
                   {bm ? currentScenario.primaryActionBm : currentScenario.primaryActionEn}
                 </div>
