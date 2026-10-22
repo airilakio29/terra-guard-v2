@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="public/logo.png" alt="Terra Guard V2 Logo" width="130" />
+</p>
+
 # Terra Guard V2 🇲🇾 — Citizen Disaster Companion
 
-> **Mobile-first, cognitive-de-escalation disaster monitoring and safety companion for everyday citizens.**
+> **Mobile-first, cognitive-de-escalation disaster monitoring and safety companion for everyday citizens (Sime Darby Hackathon Edition).**
 
 **Terra Guard V2** is a complete civilian reimagining of the original *Terra Guard* concept. Unlike tactical command-center dashboards built for operators, **Terra Guard V2** is engineered for an ordinary person in acute distress asking:
 1. *Am I safe right now?*
