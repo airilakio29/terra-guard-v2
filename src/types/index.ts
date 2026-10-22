@@ -93,9 +93,28 @@ export interface LiveWeather {
   pm25: number;
   pm10: number;
   dominantPollutant: 'PM2.5' | 'PM10' | 'O3' | 'CO' | 'NO2' | 'SO2';
+  stationName?: string;
+  stationDistanceKm?: number;
+  stationState?: string;
+  stationUpdatedMs?: number;
+  ipuDataSource?: 'live-doe-apims' | 'cached-doe-apims' | 'offline-doe-apims' | 'waqi-relay' | 'demo-scenario';
   /** Live river discharge from Open-Meteo GloFAS Flood API (m3/s) */
   riverDischargeM3s: number | null;
   riverDischargeMeanM3s: number | null;
+}
+
+export interface DoeStationRecord {
+  stationId: string;
+  stationLocation: string;
+  stateName: string;
+  place?: string;
+  lat: number;
+  lon: number;
+  ipu: number;
+  category: IpuCategory;
+  dominantPollutant: 'PM2.5' | 'PM10' | 'O3' | 'CO' | 'NO2' | 'SO2' | string;
+  datetimeMs: number;
+  distKm?: number;
 }
 
 export interface ChatMessage {
@@ -108,6 +127,10 @@ export interface ChatMessage {
   steps?: string[];
   suggestions?: string[];
   source?: 'gemini' | 'offline';
+  isStreaming?: boolean;
+  canRetry?: boolean;
+  retryPrompt?: string;
+  hotlines?: { name: string; number: string; purposeEn: string; purposeBm: string }[];
 }
 
 export interface EmergencyContact {
