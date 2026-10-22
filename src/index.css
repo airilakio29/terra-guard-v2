@@ -1933,23 +1933,56 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 20;
+  max-height: calc(100% - 44px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 30;
   background: var(--bg-sheet);
   border-top: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 14px 16px 20px;
+  padding: 12px 16px 16px;
   box-shadow: var(--shadow-lg);
   transition: transform var(--transition-normal);
 }
 
 .floating-shelter-sheet--minimized {
   padding: 10px 14px;
+  max-height: none;
+  overflow: visible;
 }
 
 .shelter-sheet-top-row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-sheet);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.shelter-sheet-toggle-btn {
+  border: 1px solid var(--border-strong);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-full);
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.shelter-sheet-toggle-btn:hover {
+  background: var(--brand-surface);
+  color: var(--brand-primary);
+  border-color: var(--brand-border);
 }
 
 .shelter-sheet-title {

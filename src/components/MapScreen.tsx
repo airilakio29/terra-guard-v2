@@ -108,16 +108,16 @@ export const MapScreen: React.FC = () => {
         </div>
 
         {/* Map Control Actions */}
-        <div className="map-action-controls">
+        <div className="map-action-controls" style={{ flexShrink: 0 }}>
           <button
             className="map-filter-pill active"
             onClick={handleLocateAndCenter}
             disabled={locating}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 10px' }}
             title={language === 'bm' ? 'Kesan lokasi GPS saya' : 'Detect my live GPS location'}
           >
             <LocateFixed size={13} className={locating ? 'spin-icon' : ''} />
-            <span>{locating ? 'GPS…' : language === 'bm' ? 'Lokasi Saya' : 'My GPS'}</span>
+            <span>{locating ? 'GPS…' : 'GPS'}</span>
           </button>
           <button
             className="map-ctrl-btn"
@@ -440,8 +440,8 @@ export const MapScreen: React.FC = () => {
         >
           <span>
             {language === 'bm'
-              ? `📡 GPS Langsung: ${currentScenario.locationName}`
-              : `📡 Live GPS: ${currentScenario.locationName}`}
+              ? `📡 GPS: ${currentScenario.locationName}`
+              : `📡 GPS: ${currentScenario.locationName}`}
           </span>
           {weather && (
             <span style={{ color: 'var(--brand-primary)', fontWeight: 800 }}>
@@ -462,7 +462,7 @@ export const MapScreen: React.FC = () => {
             )}
             <div className={`floating-shelter-sheet ${isSheetMinimized ? 'floating-shelter-sheet--minimized' : ''}`}>
               <div className="shelter-sheet-top-row">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
                   <span
                     style={{
                       fontSize: '11px',
@@ -470,7 +470,8 @@ export const MapScreen: React.FC = () => {
                       padding: '2px 7px',
                       borderRadius: 'var(--radius-sm)',
                       background: selectedShelter.status === 'open' ? 'var(--safe-bg)' : 'var(--advisory-bg)',
-                      color: selectedShelter.status === 'open' ? 'var(--safe-text)' : 'var(--advisory-text)'
+                      color: selectedShelter.status === 'open' ? 'var(--safe-text)' : 'var(--advisory-text)',
+                      flexShrink: 0
                     }}
                   >
                     {selectedShelter.status === 'open' ? t.openStatus : t.limitedStatus}
@@ -483,20 +484,11 @@ export const MapScreen: React.FC = () => {
                 </div>
 
                 <button
+                  type="button"
+                  className="shelter-sheet-toggle-btn"
                   onClick={() => setIsSheetMinimized(!isSheetMinimized)}
-                  style={{
-                    border: 'none',
-                    background: 'var(--bg-subtle)',
-                    borderRadius: 'var(--radius-full)',
-                    width: '26px',
-                    height: '26px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)'
-                  }}
                   title={isSheetMinimized ? 'Expand Shelter Details' : 'Minimize to View Full Map'}
+                  aria-label={isSheetMinimized ? 'Expand Shelter Details' : 'Minimize to View Full Map'}
                 >
                   {isSheetMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
