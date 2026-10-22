@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { THEME_REGISTRY } from '../data/themes';
 import { PRESET_AVATARS, AvatarDisplay } from './PresetAvatars';
 import { AvatarCropper } from './AvatarCropper';
+import { Logo } from './Logo';
 
 export const SettingsScreen: React.FC = () => {
   const { 
@@ -421,13 +422,8 @@ export const SettingsScreen: React.FC = () => {
 
                   <div className="theme-card__effect-tag">
                     {theme.floatingEffect.type === 'droplets' && (language === 'bm' ? '💧 Titisan Air & Suar' : '💧 Droplets & Beacon')}
-                    {theme.floatingEffect.type === 'bubbles' && (language === 'bm' ? '🫧 Buih Laut Naik' : '🫧 Rising Bubbles')}
-                    {theme.floatingEffect.type === 'leaves' && (language === 'bm' ? '🍃 Dedaun Berputar' : '🍃 Drifting Leaves')}
-                    {theme.floatingEffect.type === 'neko-paws' && (language === 'bm' ? '🐾 Siluet Kucing & Tapak' : '🐾 Neko Silhouettes & Paws')}
-                    {theme.floatingEffect.type === 'sakura-petals' && (language === 'bm' ? '🌸 Kelopak Sakura' : '🌸 Sakura Petals')}
-                    {theme.floatingEffect.type === 'stars-fireflies' && (language === 'bm' ? '✨ Bintang & Kelip-Kelip' : '✨ Stars & Fireflies')}
-                    {theme.floatingEffect.type === 'lanterns' && (language === 'bm' ? '🏮 Tanglung Terbang' : '🏮 Rising Lanterns')}
                     {theme.floatingEffect.type === 'rain-clouds' && (language === 'bm' ? '🌧️ Hujan Rintik & Awan' : '🌧️ Rain Streaks & Clouds')}
+                    {theme.floatingEffect.type === 'golden-leaves' && (language === 'bm' ? '🍃 Titik Emas & Dedaun' : '🍃 Golden Dots & Soft Leaves')}
                   </div>
                 </div>
               </div>
@@ -484,6 +480,32 @@ export const SettingsScreen: React.FC = () => {
           <div className="safety-guarantee-box__text">
             <strong>{t.safetyGuaranteeTitle}</strong>
             <p>{t.safetyGuaranteeDesc}</p>
+          </div>
+        </div>
+
+        {/* Official Application Card with Central Logo */}
+        <div 
+          style={{
+            marginTop: '16px',
+            padding: '16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px'
+          }}
+        >
+          <Logo size={48} variant="badge" />
+          <div>
+            <div style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)' }}>
+              Terra Guard V2
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {language === 'bm'
+                ? 'Edisi Rasmi Hackathon Sime Darby • Teman Bencana Awam'
+                : 'Sime Darby Hackathon Edition • Citizen Disaster Companion'}
+            </div>
           </div>
         </div>
       </div>
