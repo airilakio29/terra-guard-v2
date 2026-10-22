@@ -73,13 +73,11 @@ const AppRoot: React.FC = () => {
   const isAuthenticated = Boolean(user || isGuest);
 
   return (
-    <>
+    <AppProvider>
       {/* Pre-mount underlying screen while Splash is active so live telemetry loads with ZERO blank gap */}
       {isAuthenticated ? (
         <div className="screen-transition" key="screen-main">
-          <AppProvider>
-            <MainLayout />
-          </AppProvider>
+          <MainLayout />
         </div>
       ) : (
         <div className="screen-transition" key="screen-login">
@@ -91,7 +89,7 @@ const AppRoot: React.FC = () => {
       {!splashFinished && (
         <SplashScreen onFinish={() => setSplashFinished(true)} />
       )}
-    </>
+    </AppProvider>
   );
 };
 

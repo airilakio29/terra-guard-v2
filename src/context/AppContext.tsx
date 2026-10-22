@@ -1,13 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { Language, RiskLevel, ShelterInfo, ScenarioData, ChatMessage, LiveWeather } from '../types';
 import { SCENARIOS } from '../data/scenarios';
 import { TRANSLATIONS } from '../data/translations';
 import { fetchLiveWeather, geocodeLocationQuery, hasWeatherKey } from '../services/weather';
 import { buildLiveScenario, fetchNearbyRealShelters } from '../services/liveRiskEngine';
-import { askSafetyAi } from '../services/safetyAi';
+import { 
+  askSafetyAiStreaming, 
+  getInstantTriageReply, 
+  prefetchTriageCache, 
+  buildLocalFallbackReply 
+} from '../services/safetyAi';
+import { buildEnrichedTriageReply } from '../data/triageProtocols';
 
 import { useAuth } from './AuthContext';
-import { DEFAULT_THEME_ID, getThemeById, applyTheme } from '../data/themes';
+import { DEFAULT_THEME_ID, getThemeById, applyTheme, THEME_REGISTRY } from '../data/themes';
 import { DEFAULT_AVATAR_ID } from '../components/PresetAvatars';
 import { saveUserAvatar, getCachedAvatar, type SaveAvatarResult } from '../services/avatarStorage';
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
@@ -20,6 +26,8 @@ interface AppContextType {
   setLanguage: (lang: Language) => void;
   scenario: RiskLevel;
   setScenario: (scenario: RiskLevel) => void;
+  isLiveMode: boolean;
+  setIsLiveMode: (live: boolean) => void;
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
   currentScenario: ScenarioData;
@@ -66,7 +74,7 @@ interface AppContextType {
 
 const DEFAULT_MY_COORDS = { lat: 3.139, lon: 101.6869 }; // Kuala Lumpur / Klang Valley center
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isGuest, userProfile } = useAuth();
@@ -133,14 +141,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isLive: true
   }));
 
-  const currentScenario = liveScenario;
+  const [isLiveMode, setIsLiveModeState] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('terra_guard_live_mode');
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const setIsLiveMode = (val: boolean) => {
+    setIsLiveModeState(val);
+    try {
+      localStorage.setItem('terra_guard_live_mode', String(val));
+    } catch {
+      // ignore
+    }
+  };
+
+  const currentScenario = isLiveMode ? liveScenario : (SCENARIOS[scenario] || SCENARIOS.advisory);
   const [selectedShelter, setSelectedShelter] = useState<ShelterInfo>(currentScenario.shelters[0]);
 
   useEffect(() => {
     if (currentScenario.shelters.length > 0) {
       setSelectedShelter(currentScenario.shelters[0]);
     }
-  }, [currentScenario.nearestShelterId, currentScenario.lat, currentScenario.lon]);
+  }, [currentScenario.nearestShelterId, currentScenario.lat, currentScenario.lon, isLiveMode, scenario]);
 
   // Offline checklist state with localStorage
   const [checklist, setChecklist] = useState<Record<string, boolean>>(() => {
@@ -357,6 +383,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [language]);
 
+  // Prefetch verified triage cache on scenario, shelter, or language change
+  useEffect(() => {
+    prefetchTriageCache(language, currentScenario, selectedShelter);
+  }, [language, currentScenario, selectedShelter]);
+
   const formatNow = () =>
     new Date().toLocaleTimeString(language === 'bm' ? 'ms-MY' : 'en-MY', {
       hour: 'numeric',
@@ -385,31 +416,113 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setIsAiThinking(true);
 
-    const reply = await askSafetyAi(trimmed, {
+    const ctx = {
       language,
       scenario: currentScenario,
       selectedShelter,
       weather,
       userLocation: activeCoords
-    });
-
-    const assistantMsg: ChatMessage = {
-      id: `a-${Date.now()}`,
-      sender: 'assistant',
-      text: reply.title,
-      verificationSummary: reply.verificationSummary,
-      sourcesChecked: reply.sourcesChecked,
-      steps: reply.steps,
-      suggestions: reply.suggestions,
-      source: reply.source,
-      timestamp: formatNow()
     };
 
-    setIsAiThinking(false);
-    setMessages(prev => [...prev, assistantMsg]);
-    playChime();
+    // 1. Instant Triage Check: respond from local bundled verified content in <10ms with 0 model calls
+    const instant = getInstantTriageReply(trimmed, ctx);
+    if (instant) {
+      const instantMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        sender: 'assistant',
+        text: instant.title,
+        verificationSummary: instant.verificationSummary,
+        sourcesChecked: instant.sourcesChecked,
+        steps: instant.steps,
+        suggestions: instant.suggestions,
+        source: instant.source,
+        hotlines: instant.hotlines,
+        timestamp: formatNow()
+      };
+      setMessages(prev => [...prev, instantMsg]);
+      playChime();
+      return;
+    }
+
+    // 2. Live Model for Follow-ups & Free Text: show typing indicator immediately (<100ms)
+    setIsAiThinking(true);
+    const streamId = `a-${Date.now()}`;
+
+    // Add streaming message placeholder
+    const placeholderMsg: ChatMessage = {
+      id: streamId,
+      sender: 'assistant',
+      text: '',
+      isStreaming: true,
+      timestamp: formatNow()
+    };
+    setMessages(prev => [...prev, placeholderMsg]);
+
+    try {
+      const reply = await askSafetyAiStreaming(
+        trimmed,
+        ctx,
+        messages.map(m => ({ sender: m.sender, text: m.text })),
+        {
+          onChunk: (_chunk, accumulated) => {
+            setMessages(prev =>
+              prev.map(m =>
+                m.id === streamId
+                  ? { ...m, text: accumulated }
+                  : m
+              )
+            );
+          },
+          onFirstSentence: (firstSentence) => {
+            // Early Read Aloud: trigger speech as soon as the first sentence arrives!
+            if (isSpeaking) {
+              speakText(firstSentence);
+            }
+          }
+        }
+      );
+
+      const assistantMsg: ChatMessage = {
+        id: streamId,
+        sender: 'assistant',
+        text: reply.title,
+        verificationSummary: reply.verificationSummary,
+        sourcesChecked: reply.sourcesChecked,
+        steps: reply.steps,
+        suggestions: reply.suggestions,
+        source: reply.source,
+        hotlines: reply.hotlines,
+        canRetry: reply.canRetry,
+        retryPrompt: reply.retryPrompt,
+        isStreaming: false,
+        timestamp: formatNow()
+      };
+
+      setMessages(prev => prev.map(m => m.id === streamId ? assistantMsg : m));
+      playChime();
+    } catch {
+      // Emergency graceful fallback to local civil defence guidance
+      const fallback = buildLocalFallbackReply(trimmed, ctx, false);
+      const fallbackMsg: ChatMessage = {
+        id: streamId,
+        sender: 'assistant',
+        text: fallback.title,
+        verificationSummary: fallback.verificationSummary,
+        sourcesChecked: fallback.sourcesChecked,
+        steps: fallback.steps,
+        suggestions: fallback.suggestions,
+        source: 'offline',
+        hotlines: fallback.hotlines,
+        canRetry: true,
+        retryPrompt: trimmed,
+        isStreaming: false,
+        timestamp: formatNow()
+      };
+      setMessages(prev => prev.map(m => m.id === streamId ? fallbackMsg : m));
+    } finally {
+      setIsAiThinking(false);
+    }
   };
 
   const askAssistantDirectly = (promptKey: 'pack' | 'drive' | 'power' | 'trapped') => {
@@ -431,27 +544,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ? 'Apa tindakan jika air masuk rumah?'
               : 'What if water enters my house?';
 
-    void sendChatMessage(userPrompt);
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      sender: 'user',
+      text: userPrompt,
+      timestamp: formatNow()
+    };
+
+    // Build enriched verified protocol instantly (<10ms)
+    const instant = buildEnrichedTriageReply(promptKey, language, currentScenario, selectedShelter);
+    const assistantMsg: ChatMessage = {
+      id: `a-${Date.now() + 1}`,
+      sender: 'assistant',
+      text: instant.title,
+      verificationSummary: instant.verificationSummary,
+      sourcesChecked: instant.sourcesChecked,
+      steps: instant.steps,
+      suggestions: instant.suggestions,
+      source: instant.source,
+      hotlines: instant.hotlines,
+      timestamp: formatNow()
+    };
+
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
+    playChime();
   };
 
-  // Text to Speech
+  // Text to Speech with Early Sentence Playback Queue
+  const speechQueueRef = useRef<string[]>([]);
+  const isSpeechCancelledRef = useRef<boolean>(false);
+
   const speakText = (text: string) => {
     if (!('speechSynthesis' in window)) {
       alert('Speech synthesis is not supported on this browser.');
       return;
     }
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.lang = language === 'bm' ? 'ms-MY' : 'en-US';
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+    isSpeechCancelledRef.current = false;
+
+    // Split text into readable sentences for early playback
+    const sentences = (text.match(/[^.!?\n]+[.!?\n]+/g) || [text])
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (sentences.length === 0) return;
+
+    speechQueueRef.current = [...sentences];
+    setIsSpeaking(true);
+
+    const speakNext = () => {
+      if (isSpeechCancelledRef.current || speechQueueRef.current.length === 0) {
+        setIsSpeaking(false);
+        return;
+      }
+      const nextSentence = speechQueueRef.current.shift()!;
+      const utterance = new SpeechSynthesisUtterance(nextSentence);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.lang = language === 'bm' ? 'ms-MY' : 'en-US';
+      utterance.onend = () => {
+        speakNext();
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speakNext();
   };
 
   const stopSpeaking = () => {
+    isSpeechCancelledRef.current = true;
+    speechQueueRef.current = [];
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -463,7 +628,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ─── Theme & Appearance Management ──────────────────────────────────────────
   const [themeId, setThemeIdState] = useState<string>(() => {
     try {
-      return localStorage.getItem('terra_guard_theme') || DEFAULT_THEME_ID;
+      const saved = localStorage.getItem('terra_guard_theme');
+      if (saved && THEME_REGISTRY.some(t => t.id === saved)) {
+        return saved;
+      }
+      if (saved && saved !== DEFAULT_THEME_ID) {
+        try {
+          localStorage.setItem('terra_guard_theme', DEFAULT_THEME_ID);
+        } catch {}
+      }
+      return DEFAULT_THEME_ID;
     } catch {
       return DEFAULT_THEME_ID;
     }
@@ -489,6 +663,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const themeConfig = getThemeById(themeId);
     applyTheme(themeConfig, reduceEffects, reduceMotion);
   }, [themeId, reduceEffects, reduceMotion]);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profileTheme = (userProfile as any)?.themeId;
+    if (profileTheme) {
+      if (THEME_REGISTRY.some(t => t.id === profileTheme)) {
+        setThemeIdState(profileTheme);
+        try {
+          localStorage.setItem('terra_guard_theme', profileTheme);
+        } catch {}
+      } else {
+        setThemeIdState(DEFAULT_THEME_ID);
+        try {
+          localStorage.setItem('terra_guard_theme', DEFAULT_THEME_ID);
+        } catch {}
+        if (user && !isGuest) {
+          updateDoc(doc(db, 'users', user.uid), { themeId: DEFAULT_THEME_ID }).catch(console.warn);
+        }
+      }
+    }
+  }, [userProfile, user, isGuest]);
 
   const setThemeId = (newId: string) => {
     setThemeIdState(newId);
@@ -600,6 +795,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLanguage,
         scenario,
         setScenario,
+        isLiveMode,
+        setIsLiveMode,
         activeTab,
         setActiveTab,
         currentScenario,
