@@ -70,33 +70,28 @@ const MainLayout: React.FC = () => {
 const AppRoot: React.FC = () => {
   const { user, isGuest } = useAuth();
   const [splashFinished, setSplashFinished] = useState(false);
-
-  // 1. Splash Screen (~2.5s with background auth check)
-  if (!splashFinished) {
-    return (
-      <SplashScreen
-        onFinish={() => setSplashFinished(true)}
-      />
-    );
-  }
-
-  // 2. Original Login Screen (if not signed in and not guest)
   const isAuthenticated = Boolean(user || isGuest);
-  if (!isAuthenticated) {
-    return (
-      <div className="screen-transition" key="screen-login">
-        <Auth />
-      </div>
-    );
-  }
 
-  // 3. Main UI (bypasses login if signed in or guest, with shared transition)
   return (
-    <div className="screen-transition" key="screen-main">
-      <AppProvider>
-        <MainLayout />
-      </AppProvider>
-    </div>
+    <>
+      {/* Pre-mount underlying screen while Splash is active so live telemetry loads with ZERO blank gap */}
+      {isAuthenticated ? (
+        <div className="screen-transition" key="screen-main">
+          <AppProvider>
+            <MainLayout />
+          </AppProvider>
+        </div>
+      ) : (
+        <div className="screen-transition" key="screen-login">
+          <Auth />
+        </div>
+      )}
+
+      {/* Fullscreen Live Telemetry Splash Overlay */}
+      {!splashFinished && (
+        <SplashScreen onFinish={() => setSplashFinished(true)} />
+      )}
+    </>
   );
 };
 

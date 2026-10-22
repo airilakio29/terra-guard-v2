@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  ShieldAlert, 
-  MapPin, 
-  Bot, 
+import {
+  ShieldAlert,
+  MapPin,
+  Bot,
   PhoneCall,
-  Settings 
+  Settings
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -13,7 +13,8 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav className="bottom-nav">
-      <button 
+      {/* 1. Status */}
+      <button
         className={`nav-tab-btn ${activeTab === 'status' ? 'active' : ''}`}
         onClick={() => setActiveTab('status')}
       >
@@ -23,7 +24,8 @@ export const BottomNav: React.FC = () => {
         <span>{t.navStatus}</span>
       </button>
 
-      <button 
+      {/* 2. Live Map */}
+      <button
         className={`nav-tab-btn ${activeTab === 'map' ? 'active' : ''}`}
         onClick={() => setActiveTab('map')}
       >
@@ -33,7 +35,19 @@ export const BottomNav: React.FC = () => {
         <span>{t.navMap}</span>
       </button>
 
-      <button 
+      {/* 3. CENTER HERO BUTTON: SOS & Kit (Red, Larger, Elevated in Middle) */}
+      <button
+        className={`nav-tab-btn nav-tab-btn--sos-center ${activeTab === 'sos' ? 'active' : ''}`}
+        onClick={() => setActiveTab('sos')}
+      >
+        <div className="nav-tab-icon nav-tab-icon--sos">
+          <PhoneCall size={22} />
+        </div>
+        <span>{t.navSos}</span>
+      </button>
+
+      {/* 4. Safety AI */}
+      <button
         className={`nav-tab-btn ${activeTab === 'assistant' ? 'active' : ''}`}
         onClick={() => setActiveTab('assistant')}
       >
@@ -43,18 +57,8 @@ export const BottomNav: React.FC = () => {
         <span>{t.navAssist}</span>
       </button>
 
-      <button 
-        className={`nav-tab-btn ${activeTab === 'sos' ? 'active' : ''}`}
-        onClick={() => setActiveTab('sos')}
-        style={{ color: activeTab === 'sos' ? 'var(--danger-accent)' : undefined }}
-      >
-        <div className="nav-tab-icon">
-          <PhoneCall size={22} />
-        </div>
-        <span style={{ color: activeTab === 'sos' ? 'var(--danger-accent)' : undefined }}>{t.navSos}</span>
-      </button>
-
-      <button 
+      {/* 5. Settings */}
+      <button
         className={`nav-tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
         onClick={() => setActiveTab('settings')}
       >
