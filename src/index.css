@@ -1669,6 +1669,36 @@ html, body {
   font-weight: 800;
 }
 
+/* Status Card Drop Bar Toggle Button */
+.status-card__drop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 10px;
+  background: var(--bg-surface);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-md);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.status-card__drop-bar:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.status-card__drop-bar:active {
+  transform: scale(0.98);
+}
+
 /* Primary Action CTA Card */
 .primary-action-card {
   background: var(--bg-surface);
@@ -2536,6 +2566,74 @@ html, body {
 .weather-forecast__pop { color: var(--brand-primary); font-weight: 600; }
 .weather-source, .weather-muted { font-size: 11px; color: var(--text-muted); }
 @media (max-width: 420px) { .weather-card__stats { grid-template-columns: repeat(2, 1fr); } }
+
+/* Weather Card Drop Bar & Compact Summary Strip */
+.weather-card__compact-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: 2px;
+}
+
+.weather-card__drop-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  margin-top: 4px;
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-md);
+  color: var(--brand-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+
+.weather-card__drop-bar:hover {
+  background: var(--bg-surface-alt);
+  border-color: var(--brand-primary);
+  transform: translateY(-1px);
+}
+
+.weather-card__drop-bar:active {
+  transform: scale(0.98);
+}
+
+/* Shared Drop Bar Chevron & Animation */
+.drop-bar__chevron {
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.drop-bar__chevron--rotated {
+  transform: rotate(180deg);
+}
+
+.drop-bar__expanded-content {
+  animation: dropBarExpand 220ms var(--ease-out) both;
+}
+
+@keyframes dropBarExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AUTH PAGE — TerraGuard Sign In / Create Account

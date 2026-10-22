@@ -1,5 +1,5 @@
-import React from 'react';
-import { CloudRain, Droplets, Wind, Thermometer, LocateFixed, RotateCw, Radio, Eye } from 'lucide-react';
+import React, { useState } from 'react';
+import { CloudRain, Droplets, Wind, Thermometer, LocateFixed, RotateCw, Radio, Eye, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { iconUrl, rainOutlook, getIpuMeta } from '../services/weather';
 
@@ -18,6 +18,7 @@ function timeAgo(ms: number, bm: boolean) {
 
 export const LiveWeatherCard: React.FC = () => {
   const { weather, weatherError, language, locating, locateMe, refreshFeeds, isRefreshing } = useApp();
+  const [isExpanded, setIsExpanded] = useState(false);
   const bm = language === 'bm';
 
   if (weatherError === 'missing-key') {
@@ -91,69 +92,120 @@ export const LiveWeatherCard: React.FC = () => {
         <span><CloudRain size={13} /> {weather.rain1hMm.toFixed(1)} mm/h</span>
       </div>
 
-      {/* Malaysian DOE IPU (Indeks Pencemaran Udara / Haze Index) Box */}
-      <div
-        className="weather-outlook"
-        style={{
-          color: ipuMeta.color,
-          background: ipuMeta.bg,
-          border: `1px solid ${ipuMeta.border}`
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}>
-            <Eye size={14} />
-            {bm ? 'Indeks Jerebu (IPU Malaysia):' : 'Haze Index (Malaysia IPU):'} {weather.ipuIndex}
+      {/* Collapsed short summary teaser */}
+      {!isExpanded && (
+        <div className="weather-card__compact-strip">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12px',
+              fontWeight: 800,
+              color: ipuMeta.color
+            }}
+          >
+            <Eye size={13} />
+            {bm ? 'Indeks Jerebu:' : 'Haze Index:'} {weather.ipuIndex} ({ipuMeta.label})
           </span>
           <span
             style={{
               fontSize: '11px',
-              fontWeight: 800,
-              padding: '2px 7px',
-              borderRadius: 'var(--radius-full)',
-              border: `1px solid ${ipuMeta.border}`,
-              background: 'var(--bg-surface)',
-              color: ipuMeta.color
+              color: 'var(--text-muted)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}
           >
-            {ipuMeta.label}
+            💧 {bm ? 'Ramalan 24j:' : '24h rain:'} {weather.rain24hMm.toFixed(1)} mm
           </span>
         </div>
-        <span className="weather-outlook__meta">
-          {ipuMeta.advice} (PM2.5: {weather.pm25} µg/m³ · PM10: {weather.pm10} µg/m³)
-        </span>
-      </div>
+      )}
 
-      {/* Rain & Flood Outlook Box */}
-      <div
-        className="weather-outlook"
-        style={{ color: outlook.color, background: outlook.bg, border: `1px solid ${outlook.border}` }}
+      {/* Drop Bar Toggle Button */}
+      <button
+        type="button"
+        className="weather-card__drop-bar"
+        onClick={() => setIsExpanded(prev => !prev)}
+        aria-expanded={isExpanded}
       >
-        <span>{bm ? outlook.bm : outlook.en}</span>
-        <span className="weather-outlook__meta">
-          {bm ? 'Jumlah 24j' : '24h total'}: {weather.rain24hMm.toFixed(1)} mm · {bm ? 'Peluang maks' : 'Max chance'}: {Math.round(weather.maxRainChance * 100)}%
-          {weather.riverDischargeM3s !== null && (
-            <> · {bm ? 'Aliran sungai' : 'River flow'}: {weather.riverDischargeM3s.toFixed(0)} m³/s</>
-          )}
+        <span>
+          {isExpanded
+            ? (bm ? 'Tutup Ramalan & Analisis Penuh' : 'Show Less')
+            : (bm ? 'Lihat Ramalan Penuh (IPU, Ramalan 24J & Jam)' : 'See More (Full Haze IPU, 24h & Hourly)')}
         </span>
-      </div>
+        <ChevronDown size={15} className={`drop-bar__chevron ${isExpanded ? 'drop-bar__chevron--rotated' : ''}`} />
+      </button>
 
-      <div className="weather-forecast">
-        {weather.forecast.map(f => (
-          <div key={f.time} className="weather-forecast__slot">
-            <span>{new Date(f.time).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric' })}</span>
-            <img src={iconUrl(f.icon)} alt="" width={32} height={32} />
-            <strong>{Math.round(f.tempC)}°</strong>
-            <span className="weather-forecast__pop">💧{Math.round(f.rainChance * 100)}%</span>
+      {/* Fully Expanded View: Malaysian DOE IPU, 24h Rain Outlook, Hourly Strip & Sources */}
+      {isExpanded && (
+        <div className="drop-bar__expanded-content" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Malaysian DOE IPU (Indeks Pencemaran Udara / Haze Index) Box */}
+          <div
+            className="weather-outlook"
+            style={{
+              color: ipuMeta.color,
+              background: ipuMeta.bg,
+              border: `1px solid ${ipuMeta.border}`
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 800 }}>
+                <Eye size={14} />
+                {bm ? 'Indeks Jerebu (IPU Malaysia):' : 'Haze Index (Malaysia IPU):'} {weather.ipuIndex}
+              </span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 7px',
+                  borderRadius: 'var(--radius-full)',
+                  border: `1px solid ${ipuMeta.border}`,
+                  background: 'var(--bg-surface)',
+                  color: ipuMeta.color
+                }}
+              >
+                {ipuMeta.label}
+              </span>
+            </div>
+            <span className="weather-outlook__meta">
+              {ipuMeta.advice} (PM2.5: {weather.pm25} µg/m³ · PM10: {weather.pm10} µg/m³)
+            </span>
           </div>
-        ))}
-      </div>
 
-      <div className="weather-source">
-        {bm
-          ? 'Sumber: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Rujuk MetMalaysia / JAS (APIMS) / NADMA.'
-          : 'Sources: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Follow official MetMalaysia / DOE APIMS / NADMA alerts.'}
-      </div>
+          {/* Rain & Flood Outlook Box */}
+          <div
+            className="weather-outlook"
+            style={{ color: outlook.color, background: outlook.bg, border: `1px solid ${outlook.border}` }}
+          >
+            <span>{bm ? outlook.bm : outlook.en}</span>
+            <span className="weather-outlook__meta">
+              {bm ? 'Jumlah 24j' : '24h total'}: {weather.rain24hMm.toFixed(1)} mm · {bm ? 'Peluang maks' : 'Max chance'}: {Math.round(weather.maxRainChance * 100)}%
+              {weather.riverDischargeM3s !== null && (
+                <> · {bm ? 'Aliran sungai' : 'River flow'}: {weather.riverDischargeM3s.toFixed(0)} m³/s</>
+              )}
+            </span>
+          </div>
+
+          {/* Hourly Forecast */}
+          <div className="weather-forecast">
+            {weather.forecast.map(f => (
+              <div key={f.time} className="weather-forecast__slot">
+                <span>{new Date(f.time).toLocaleTimeString(bm ? 'ms-MY' : 'en-MY', { hour: 'numeric' })}</span>
+                <img src={iconUrl(f.icon)} alt="" width={32} height={32} />
+                <strong>{Math.round(f.tempC)}°</strong>
+                <span className="weather-forecast__pop">💧{Math.round(f.rainChance * 100)}%</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="weather-source">
+            {bm
+              ? 'Sumber: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Rujuk MetMalaysia / JAS (APIMS) / NADMA.'
+              : 'Sources: OpenWeather, Open-Meteo Air Quality (IPU) & GloFAS River Flood. Follow official MetMalaysia / DOE APIMS / NADMA alerts.'}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

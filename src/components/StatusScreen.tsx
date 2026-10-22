@@ -14,7 +14,8 @@ import {
   Compass,
   LocateFixed,
   Wind,
-  Search
+  Search,
+  ChevronDown
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { LiveWeatherCard } from './LiveWeatherCard';
@@ -38,6 +39,7 @@ export const StatusScreen: React.FC = () => {
 
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState('');
+  const [isStatusDetailsOpen, setIsStatusDetailsOpen] = useState(false);
 
   const isSafe = currentScenario.riskLevel === 'safe';
   const isAdvisory = currentScenario.riskLevel === 'advisory';
@@ -242,10 +244,29 @@ export const StatusScreen: React.FC = () => {
                 {bm ? currentScenario.directiveBm : currentScenario.directiveEn}
               </p>
 
-              <div className="status-card__summary">
-                <strong>{bm ? 'Laporan Telemetri Semasa: ' : 'Live Telemetry SITREP: '}</strong>
-                {bm ? currentScenario.hazardSummaryBm : currentScenario.hazardSummaryEn}
-              </div>
+              {/* Collapsible Drop Bar for Detailed SITREP */}
+              <button
+                type="button"
+                className="status-card__drop-bar"
+                onClick={() => setIsStatusDetailsOpen(prev => !prev)}
+                aria-expanded={isStatusDetailsOpen}
+              >
+                <span>
+                  {isStatusDetailsOpen
+                    ? (bm ? 'Tutup Butiran Laporan' : 'Hide Detailed SITREP')
+                    : (bm ? 'Lihat Laporan Penuh (SITREP & Telemetri)' : 'See More (Full SITREP & Telemetry)')}
+                </span>
+                <ChevronDown size={15} className={`drop-bar__chevron ${isStatusDetailsOpen ? 'drop-bar__chevron--rotated' : ''}`} />
+              </button>
+
+              {isStatusDetailsOpen && (
+                <div className="drop-bar__expanded-content">
+                  <div className="status-card__summary">
+                    <strong>{bm ? 'Laporan Telemetri Semasa: ' : 'Live Telemetry SITREP: '}</strong>
+                    {bm ? currentScenario.hazardSummaryBm : currentScenario.hazardSummaryEn}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
