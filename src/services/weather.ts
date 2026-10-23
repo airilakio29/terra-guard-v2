@@ -9,6 +9,35 @@ const BASE = 'https://api.openweathermap.org';
 // Always return true because we have robust native Open-Meteo + official DOE APIMS fallbacks
 export const hasWeatherKey = () => true;
 
+/**
+ * Automatically detects user's Malaysian state and coordinates via IP
+ * (e.g. Perak, Negeri Sembilan, Selangor, Penang, Sabah, Sarawak)
+ * without requiring GPS permissions.
+ */
+export async function detectIpLocation(): Promise<{ lat: number; lon: number; placeName: string; region: string } | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+        return {
+          lat: data.latitude,
+          lon: data.longitude,
+          placeName: data.city || data.region || 'Malaysia',
+          region: data.region ? `${data.region}, Malaysia` : 'Malaysia'
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+
 interface OwmCurrent {
   name: string;
   weather: { id: number; main: string; description: string; icon: string }[];

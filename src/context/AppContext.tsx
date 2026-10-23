@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import type { Language, RiskLevel, ShelterInfo, ScenarioData, ChatMessage, LiveWeather } from '../types';
 import { SCENARIOS } from '../data/scenarios';
 import { TRANSLATIONS } from '../data/translations';
-import { fetchLiveWeather, geocodeLocationQuery, hasWeatherKey } from '../services/weather';
+import { fetchLiveWeather, geocodeLocationQuery, hasWeatherKey, detectIpLocation } from '../services/weather';
 import { buildLiveScenario, fetchNearbyRealShelters } from '../services/liveRiskEngine';
 import { 
   askSafetyAiStreaming, 
@@ -177,7 +177,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Live GPS & Location Coordinates
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(() => {
     try {
-      const raw = localStorage.getItem('terra_guard_live_coords_v3');
+      const raw = localStorage.getItem('terra_guard_live_coords_v4');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed?.lat === 'number' && typeof parsed?.lon === 'number') {
@@ -324,46 +324,78 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const locateMe = useCallback(() => {
     setIsLiveMode(true);
     if (!('geolocation' in navigator)) {
-      setUserLocation(DEFAULT_MY_COORDS);
-      setIsGpsLocked(true);
-      void loadWeatherAndRisk(DEFAULT_MY_COORDS);
+      setLocating(false);
       return;
     }
     setLocating(true);
     setWeatherError(null);
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
 
-        setUserLocation(coords);
-        setIsGpsLocked(true);
-        setIsLiveMode(true);
-        try {
-          localStorage.setItem('terra_guard_live_coords_v3', JSON.stringify(coords));
-        } catch {
-          // ignore
-        }
-        setLocating(false);
-        playChime();
-        void loadWeatherAndRisk(coords);
-      },
+    const onGpsSuccess = (pos: GeolocationPosition) => {
+      const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      setUserLocation(coords);
+      setIsGpsLocked(true);
+      setIsLiveMode(true);
+      try {
+        localStorage.setItem('terra_guard_live_coords_v4', JSON.stringify(coords));
+      } catch {
+        // ignore
+      }
+      setLocating(false);
+      playChime();
+      void loadWeatherAndRisk(coords);
+    };
+
+    const tryLowAccuracyGps = () => {
+      navigator.geolocation.getCurrentPosition(
+        onGpsSuccess,
+        () => {
+          // If browser GPS fails or is blocked, auto-detect location by IP
+          detectIpLocation().then(ipLoc => {
+            if (ipLoc) {
+              const coords = { lat: ipLoc.lat, lon: ipLoc.lon };
+              setUserLocation(coords);
+              setIsGpsLocked(true);
+              setIsLiveMode(true);
+              void loadWeatherAndRisk(coords);
+            }
+          }).finally(() => {
+            setLocating(false);
+          });
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onGpsSuccess,
       () => {
-        // Fallback smoothly to Seremban coordinates if desktop browser geolocation times out or is blocked
-        setUserLocation(DEFAULT_MY_COORDS);
-        setIsGpsLocked(true);
-        setIsLiveMode(true);
-        setLocating(false);
-        void loadWeatherAndRisk(DEFAULT_MY_COORDS);
+        // Retry with low accuracy (Wi-Fi/cell tower) if high accuracy times out
+        tryLowAccuracyGps();
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
     );
   }, [loadWeatherAndRisk]);
 
-  // Automatically attempt live geolocation on first visit
+  // Automatically detect user location (IP first for instant state matching, then refine via real GPS)
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      locateMe();
-    }
+    let isMounted = true;
+    const initLocation = async () => {
+      const saved = localStorage.getItem('terra_guard_live_coords_v4');
+      if (!saved) {
+        // Automatically match user's actual Malaysian state (e.g. Perak, Negeri Sembilan, etc.) via IP
+        const ipLoc = await detectIpLocation();
+        if (isMounted && ipLoc) {
+          const coords = { lat: ipLoc.lat, lon: ipLoc.lon };
+          setUserLocation(coords);
+          void loadWeatherAndRisk(coords);
+        }
+      }
+      if (isMounted && 'geolocation' in navigator) {
+        locateMe();
+      }
+    };
+    void initLocation();
+    return () => { isMounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -386,7 +418,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUserLocation(coords);
       setIsGpsLocked(true);
       try {
-        localStorage.setItem('terra_guard_live_coords_v2', JSON.stringify(coords));
+        localStorage.setItem('terra_guard_live_coords_v4', JSON.stringify(coords));
       } catch {
         // ignore
       }
@@ -404,7 +436,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserLocation(DEFAULT_MY_COORDS);
     setIsGpsLocked(false);
     try {
-      localStorage.removeItem('terra_guard_live_coords_v2');
+      localStorage.removeItem('terra_guard_live_coords_v4');
     } catch {
       // ignore
     }

@@ -15,7 +15,8 @@ import {
   LocateFixed,
   Radio,
   Mountain,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { ShelterInfo } from '../types';
@@ -30,9 +31,12 @@ export const MapScreen: React.FC = () => {
     setSelectedShelter,
     locateMe,
     locating,
+    searchLocation,
     weather,
     t
   } = useApp();
+  const [showMapSearch, setShowMapSearch] = useState(false);
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
 
   const [filter, setFilter] = useState<'all' | 'hazards' | 'shelters'>('all');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -105,7 +109,66 @@ export const MapScreen: React.FC = () => {
         </div>
 
         {/* Map Control Actions */}
-        <div className="map-action-controls" style={{ flexShrink: 0 }}>
+        <div className="map-action-controls" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {showMapSearch ? (
+            <form
+              onSubmit={async e => {
+                e.preventDefault();
+                if (!mapSearchQuery.trim()) return;
+                const ok = await searchLocation(mapSearchQuery);
+                if (ok) {
+                  setMapSearchQuery('');
+                  setShowMapSearch(false);
+                  setRecenterSignal(n => n + 1);
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              <input
+                type="text"
+                value={mapSearchQuery}
+                onChange={e => setMapSearchQuery(e.target.value)}
+                placeholder={language === 'bm' ? 'Cari bandar (cth. Ipoh, Perak)...' : 'Search town (e.g. Ipoh, Perak)...'}
+                autoFocus
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-xs)',
+                  width: '140px'
+                }}
+              />
+              <button
+                type="submit"
+                className="map-filter-pill active"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                {language === 'bm' ? 'Cari' : 'Go'}
+              </button>
+              <button
+                type="button"
+                className="map-ctrl-btn"
+                onClick={() => setShowMapSearch(false)}
+                style={{ padding: '4px' }}
+              >
+                ✕
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="map-filter-pill"
+              onClick={() => setShowMapSearch(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 8px' }}
+              title={language === 'bm' ? 'Cari bandar atau negeri' : 'Search city or state'}
+            >
+              <Search size={13} />
+              <span>{language === 'bm' ? 'Cari' : 'Search'}</span>
+            </button>
+          )}
+
           <button
             className="map-filter-pill active"
             onClick={handleLocateAndCenter}
