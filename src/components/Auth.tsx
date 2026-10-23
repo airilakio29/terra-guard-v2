@@ -22,7 +22,9 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { Logo } from './Logo';
+import { GoogleIcon } from './GoogleIcon';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,24 +54,69 @@ interface SignInFormData {
 
 // ─── Firebase error → human-readable message ─────────────────────────────────
 
-function parseAuthError(error: AuthError): string {
+function parseAuthError(error: AuthError, lang: 'en' | 'bm' = 'en'): string {
+  const isBm = lang === 'bm';
   switch (error.code) {
     case 'auth/email-already-in-use':
-      return 'This email is already registered. Please sign in instead.';
+      return isBm
+        ? 'E-mel ini telah didaftarkan. Sila log masuk.'
+        : 'This email is already registered. Please sign in instead.';
     case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
+      return isBm
+        ? 'Sila masukkan alamat e-mel yang sah.'
+        : 'Please enter a valid email address.';
     case 'auth/weak-password':
-      return 'Password must be at least 6 characters long.';
+      return isBm
+        ? 'Kata laluan mestilah sekurang-kurangnya 6 aksara.'
+        : 'Password must be at least 6 characters long.';
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'Invalid email or password. Please try again.';
+      return isBm
+        ? 'E-mel atau kata laluan tidak sah. Sila cuba lagi.'
+        : 'Invalid email or password. Please try again.';
     case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please wait a moment and try again.';
+      return isBm
+        ? 'Terlalu banyak percubaan gagal. Sila tunggu sebentar dan cuba lagi.'
+        : 'Too many failed attempts. Please wait a moment and try again.';
     case 'auth/network-request-failed':
-      return 'Network error. Please check your connection.';
+      return isBm
+        ? 'Ralat rangkaian. Sila semak sambungan internet anda (mod Tetamu sentiasa sedia).'
+        : 'Network error. Please check your connection (Guest mode is always available).';
     default:
-      return error.message || 'An unexpected error occurred. Please try again.';
+      return error.message || (isBm ? 'Ralat tidak dijangka berlaku.' : 'An unexpected error occurred. Please try again.');
+  }
+}
+
+function parseGoogleAuthError(error: { code?: string; message?: string }, lang: 'en' | 'bm' = 'en'): string | null {
+  const isBm = lang === 'bm';
+  switch (error.code) {
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      // User cancelled or closed the pop-up: show no scary error banner
+      return null;
+    case 'auth/popup-blocked':
+      return isBm
+        ? 'Tetingkap timbul log masuk disekat oleh pelayar anda. Mengalihkan ke mod log masuk penuh...'
+        : 'Sign-in pop-up was blocked by your browser. Redirecting...';
+    case 'auth/network-request-failed':
+      return isBm
+        ? 'Sambungan rangkaian gagal. Sila semak internet anda dan cuba lagi (Akses Tetamu juga sedia ada).'
+        : 'Network connection failed. Please check your internet connection and try again (Guest access is also available).';
+    case 'auth/account-exists-with-different-credential':
+      return isBm
+        ? 'Akaun sudah wujud dengan e-mel ini menggunakan kaedah log masuk berbeza. Sila log masuk dengan e-mel dan kata laluan asal anda.'
+        : 'An account already exists with this email using a different sign-in method. Please sign in with your original email and password.';
+    case 'auth/unauthorized-domain':
+      return isBm
+        ? 'Domain web ini belum dibenarkan untuk Log Masuk Google dalam Firebase Console. Sila tambahkan ke Authorized Domains.'
+        : 'This domain is not authorized for Google Sign-In in Firebase Console. Please add it to Authorized Domains.';
+    case 'auth/operation-not-allowed':
+      return isBm
+        ? 'Pembekal Google belum diaktifkan dalam Firebase Authentication Console.'
+        : 'Google provider is not enabled in Firebase Authentication Console.';
+    default:
+      return error.message || (isBm ? 'Ralat log masuk Google berlaku.' : 'Google sign-in could not be completed.');
   }
 }
 
@@ -119,9 +166,12 @@ const InputField: React.FC<InputFieldProps> = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const Auth: React.FC = () => {
-  const { loginAsGuest } = useAuth();
+  const { loginAsGuest, signInWithGoogle, resetPassword } = useAuth();
+  const { language } = useApp();
+
   const [mode, setMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -150,16 +200,64 @@ const Auth: React.FC = () => {
     setShowConfirmPassword(false);
   }, []);
 
+  // ── Google Sign In ─────────────────────────────────────────────────────────
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setSuccess(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // Auth state observer handles redirection into main layout
+    } catch (err) {
+      const parsed = parseGoogleAuthError(err as AuthError, language);
+      if (parsed) {
+        setError(parsed);
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // ── Forgot Password ────────────────────────────────────────────────────────
+  const handleForgotPassword = async () => {
+    setError(null);
+    setSuccess(null);
+    const emailToReset = siForm.email.trim();
+    if (!emailToReset) {
+      setError(
+        language === 'bm'
+          ? 'Sila masukkan alamat e-mel anda dahulu di atas, kemudian tekan Lupa kata laluan.'
+          : 'Please enter your email address in the field above first, then click Forgot password.'
+      );
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await resetPassword(emailToReset);
+      setSuccess(
+        language === 'bm'
+          ? `Pautan penetapan semula kata laluan telah dihantar ke ${emailToReset}. Sila semak peti masuk anda.`
+          : `Password reset link sent to ${emailToReset}. Please check your inbox.`
+      );
+    } catch (err) {
+      setError(parseAuthError(err as AuthError, language));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Sign In ────────────────────────────────────────────────────────────────
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, siForm.email.trim(), siForm.password);
       // AuthContext listener in App.tsx will handle redirect
     } catch (err) {
-      setError(parseAuthError(err as AuthError));
+      setError(parseAuthError(err as AuthError, language));
     } finally {
       setLoading(false);
     }
@@ -169,18 +267,19 @@ const Auth: React.FC = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     // Client-side validation
     if (!suForm.fullName.trim()) {
-      setError('Full name is required.');
+      setError(language === 'bm' ? 'Nama penuh diperlukan.' : 'Full name is required.');
       return;
     }
     if (suForm.password !== suForm.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(language === 'bm' ? 'Kata laluan tidak sepadan.' : 'Passwords do not match.');
       return;
     }
     if (suForm.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(language === 'bm' ? 'Kata laluan mestilah sekurang-kurangnya 6 aksara.' : 'Password must be at least 6 characters.');
       return;
     }
 
@@ -192,6 +291,8 @@ const Auth: React.FC = () => {
         suForm.password,
       );
 
+      const savedTheme = localStorage.getItem('terra_guard_theme') || 'terra-classic';
+
       // Save extended profile to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
@@ -201,26 +302,48 @@ const Auth: React.FC = () => {
         homeAddress: suForm.homeAddress.trim(),
         hazardVulnerability: suForm.hazardVulnerability,
         medicalNotes: suForm.medicalNotes.trim(),
+        themeId: savedTheme,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         role: 'citizen',
       });
 
-      setSuccess('Account created! Redirecting to your dashboard\u2026');
-      // Auth state observer in App.tsx will redirect
+      setSuccess(
+        language === 'bm'
+          ? 'Akaun berjaya dicipta! Mengalihkan ke papan pemuka...'
+          : 'Account created! Redirecting to your dashboard\u2026'
+      );
     } catch (err) {
-      setError(parseAuthError(err as AuthError));
+      setError(parseAuthError(err as AuthError, language));
     } finally {
       setLoading(false);
     }
   };
 
   const hazardOptions: { value: HazardVulnerability; label: string; emoji: string }[] = [
-    { value: 'flood',      label: 'Flood-prone zone',  emoji: '\uD83C\uDF0A' },
-    { value: 'earthquake', label: 'Earthquake zone',   emoji: '\uD83C\uDFDA\uFE0F' },
-    { value: 'wildfire',   label: 'Wildfire area',     emoji: '\uD83D\uDD25' },
-    { value: 'none',       label: 'None / Not sure',   emoji: '\u2705' },
+    {
+      value: 'flood',
+      label: language === 'bm' ? 'Zon Mudah Banjir' : 'Flood-prone zone',
+      emoji: '\uD83C\uDF0A'
+    },
+    {
+      value: 'earthquake',
+      label: language === 'bm' ? 'Zon Gegaran / Gempa' : 'Earthquake zone',
+      emoji: '\uD83C\uDFDA\uFE0F'
+    },
+    {
+      value: 'wildfire',
+      label: language === 'bm' ? 'Kawasan Kebakaran Hutan' : 'Wildfire area',
+      emoji: '\uD83D\uDD25'
+    },
+    {
+      value: 'none',
+      label: language === 'bm' ? 'Tiada / Tidak Pasti' : 'None / Not sure',
+      emoji: '\u2705'
+    },
   ];
+
+  const isAnyLoading = loading || googleLoading;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -235,9 +358,11 @@ const Auth: React.FC = () => {
       <div className="auth-card">
         {/* Header */}
         <div className="auth-card__header">
-          <Logo size={60} variant="badge" style={{ marginBottom: '8px' }} />
+          <Logo size={60} variant="badge" style={{ marginBottom: '8px' }} language={language} />
           <h1 className="auth-title">TerraGuard</h1>
-          <p className="auth-subtitle">Civilian Disaster Companion</p>
+          <p className="auth-subtitle">
+            {language === 'bm' ? 'Teman Keselamatan Bencana Awam' : 'Citizen Disaster Companion'}
+          </p>
         </div>
 
         {/* Mode Toggle */}
@@ -248,9 +373,9 @@ const Auth: React.FC = () => {
             id="tab-signin"
             className={`auth-toggle__btn ${mode === 'signin' ? 'auth-toggle__btn--active' : ''}`}
             onClick={() => switchMode('signin')}
-            disabled={loading}
+            disabled={isAnyLoading}
           >
-            Sign In
+            {language === 'bm' ? 'Log Masuk' : 'Sign In'}
           </button>
           <button
             role="tab"
@@ -258,9 +383,9 @@ const Auth: React.FC = () => {
             id="tab-signup"
             className={`auth-toggle__btn ${mode === 'signup' ? 'auth-toggle__btn--active' : ''}`}
             onClick={() => switchMode('signup')}
-            disabled={loading}
+            disabled={isAnyLoading}
           >
-            Create Account
+            {language === 'bm' ? 'Cipta Akaun' : 'Create Account'}
           </button>
           <div className={`auth-toggle__indicator ${mode === 'signup' ? 'auth-toggle__indicator--right' : ''}`} aria-hidden />
         </div>
@@ -292,20 +417,21 @@ const Auth: React.FC = () => {
           >
             <InputField
               id="si-email"
-              label="Email address"
+              label={language === 'bm' ? 'Alamat e-mel' : 'Email address'}
               type="email"
               value={siForm.email}
               onChange={v => setSiForm(f => ({ ...f, email: v }))}
               placeholder="you@example.com"
               icon={<Mail size={16} />}
               required
-              disabled={loading}
+              disabled={isAnyLoading}
               autoComplete="email"
             />
 
             <div className="auth-field">
               <label htmlFor="si-password" className="auth-field__label">
-                Password<span className="auth-field__required" aria-hidden>*</span>
+                {language === 'bm' ? 'Kata Laluan' : 'Password'}
+                <span className="auth-field__required" aria-hidden>*</span>
               </label>
               <div className="auth-field__wrap">
                 <span className="auth-field__icon" aria-hidden><Lock size={16} /></span>
@@ -314,9 +440,9 @@ const Auth: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={siForm.password}
                   onChange={e => setSiForm(f => ({ ...f, password: e.target.value }))}
-                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  placeholder="••••••••"
                   required
-                  disabled={loading}
+                  disabled={isAnyLoading}
                   autoComplete="current-password"
                   className="auth-field__input"
                 />
@@ -330,39 +456,74 @@ const Auth: React.FC = () => {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+
+              {/* Forgot password link */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  className="auth-forgot-link"
+                  onClick={handleForgotPassword}
+                  disabled={isAnyLoading}
+                >
+                  {language === 'bm' ? 'Lupa kata laluan?' : 'Forgot password?'}
+                </button>
+              </div>
             </div>
 
             <button
               id="btn-signin"
               type="submit"
               className="auth-submit"
-              disabled={loading}
+              disabled={isAnyLoading}
             >
               {loading
-                ? <><Loader2 size={18} className="auth-submit__spinner" /> Signing in&hellip;</>
-                : <><span>Sign In</span><ArrowRight size={18} /></>
+                ? <><Loader2 size={18} className="auth-submit__spinner" /> {language === 'bm' ? 'Sedang log masuk...' : 'Signing in\u2026'}</>
+                : <><span>{language === 'bm' ? 'Log Masuk' : 'Sign In'}</span><ArrowRight size={18} /></>
               }
             </button>
 
+            {/* Google Sign-in divider */}
             <div className="auth-divider">
-              <span>or instant emergency access</span>
+              <span>{language === 'bm' ? 'atau' : 'or'}</span>
             </div>
 
+            {/* Continue with Google button */}
+            <button
+              id="btn-google-signin"
+              type="button"
+              className="auth-google-btn"
+              onClick={handleGoogleSignIn}
+              disabled={isAnyLoading}
+            >
+              {googleLoading ? (
+                <Loader2 size={18} className="auth-google-btn__spinner" />
+              ) : (
+                <GoogleIcon size={18} />
+              )}
+              <span>{language === 'bm' ? 'Teruskan dengan Google' : 'Continue with Google'}</span>
+            </button>
+
+            {/* Instant emergency access divider */}
+            <div className="auth-divider">
+              <span>{language === 'bm' ? 'atau akses kecemasan segera' : 'or instant emergency access'}</span>
+            </div>
+
+            {/* Continue as guest button */}
             <button
               id="btn-guest-login"
               type="button"
               className="auth-guest-btn"
               onClick={loginAsGuest}
-              disabled={loading}
+              disabled={isAnyLoading}
             >
               <UserCheck size={18} color="var(--brand-primary)" />
-              <span>Login as a Guest</span>
+              <span>{language === 'bm' ? 'Teruskan sebagai Tetamu' : 'Continue as Guest'}</span>
             </button>
 
             <p className="auth-footer-note">
-              Don&apos;t have an account?{' '}
+              {language === 'bm' ? 'Belum mempunyai akaun?' : "Don't have an account?"}{' '}
               <button type="button" className="auth-link" onClick={() => switchMode('signup')}>
-                Create one &rarr;
+                {language === 'bm' ? 'Cipta akaun &rarr;' : 'Create one &rarr;'}
               </button>
             </p>
           </form>
@@ -380,38 +541,39 @@ const Auth: React.FC = () => {
             {/* Section: Account */}
             <div className="auth-section-heading">
               <span className="auth-section-icon"><User size={14} /></span>
-              Account Details
+              {language === 'bm' ? 'Maklumat Akaun' : 'Account Details'}
             </div>
 
             <InputField
               id="su-fullname"
-              label="Full Name"
+              label={language === 'bm' ? 'Nama Penuh' : 'Full Name'}
               value={suForm.fullName}
               onChange={v => setSuForm(f => ({ ...f, fullName: v }))}
               placeholder="Alex Razak"
               icon={<User size={16} />}
               required
-              disabled={loading}
+              disabled={isAnyLoading}
               autoComplete="name"
             />
 
             <InputField
               id="su-email"
-              label="Email Address"
+              label={language === 'bm' ? 'Alamat E-mel' : 'Email Address'}
               type="email"
               value={suForm.email}
               onChange={v => setSuForm(f => ({ ...f, email: v }))}
               placeholder="you@example.com"
               icon={<Mail size={16} />}
               required
-              disabled={loading}
+              disabled={isAnyLoading}
               autoComplete="email"
             />
 
             <div className="auth-row">
               <div className="auth-field">
                 <label htmlFor="su-password" className="auth-field__label">
-                  Password<span className="auth-field__required" aria-hidden>*</span>
+                  {language === 'bm' ? 'Kata Laluan' : 'Password'}
+                  <span className="auth-field__required" aria-hidden>*</span>
                 </label>
                 <div className="auth-field__wrap">
                   <span className="auth-field__icon" aria-hidden><Lock size={16} /></span>
@@ -420,9 +582,9 @@ const Auth: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={suForm.password}
                     onChange={e => setSuForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 6 chars"
                     required
-                    disabled={loading}
+                    disabled={isAnyLoading}
                     autoComplete="new-password"
                     className="auth-field__input"
                   />
@@ -439,7 +601,8 @@ const Auth: React.FC = () => {
 
               <div className="auth-field">
                 <label htmlFor="su-confirm" className="auth-field__label">
-                  Confirm Password<span className="auth-field__required" aria-hidden>*</span>
+                  {language === 'bm' ? 'Sahkan Kata Laluan' : 'Confirm Password'}
+                  <span className="auth-field__required" aria-hidden>*</span>
                 </label>
                 <div className="auth-field__wrap">
                   <span className="auth-field__icon" aria-hidden><Lock size={16} /></span>
@@ -448,9 +611,9 @@ const Auth: React.FC = () => {
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={suForm.confirmPassword}
                     onChange={e => setSuForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                    placeholder="Re-enter password"
+                    placeholder="Re-enter"
                     required
-                    disabled={loading}
+                    disabled={isAnyLoading}
                     autoComplete="new-password"
                     className="auth-field__input"
                   />
@@ -469,38 +632,38 @@ const Auth: React.FC = () => {
             {/* Section: Emergency Contact */}
             <div className="auth-section-heading">
               <span className="auth-section-icon"><Phone size={14} /></span>
-              Emergency Profile
+              {language === 'bm' ? 'Profil Kecemasan' : 'Emergency Profile'}
             </div>
 
             <InputField
               id="su-phone"
-              label="Phone Number"
+              label={language === 'bm' ? 'Nombor Telefon' : 'Phone Number'}
               type="tel"
               value={suForm.phoneNumber}
               onChange={v => setSuForm(f => ({ ...f, phoneNumber: v }))}
               placeholder="+60 12-345 6789"
               icon={<Phone size={16} />}
               required
-              disabled={loading}
+              disabled={isAnyLoading}
               autoComplete="tel"
             />
 
             <InputField
               id="su-address"
-              label="Home Address / Location"
+              label={language === 'bm' ? 'Alamat Rumah / Lokasi' : 'Home Address / Location'}
               value={suForm.homeAddress}
               onChange={v => setSuForm(f => ({ ...f, homeAddress: v }))}
               placeholder="No. 12, Jalan Contoh, 50000 KL"
               icon={<MapPin size={16} />}
               required
-              disabled={loading}
+              disabled={isAnyLoading}
               autoComplete="street-address"
             />
 
             {/* Hazard Vulnerability */}
             <div className="auth-field">
               <span id="su-hazard" className="auth-field__label">
-                Primary Hazard Vulnerability
+                {language === 'bm' ? 'Kerentanan Utama Bencana' : 'Primary Hazard Vulnerability'}
                 <span className="auth-field__required" aria-hidden>*</span>
               </span>
               <div className="auth-hazard-grid" role="radiogroup" aria-labelledby="su-hazard">
@@ -515,7 +678,7 @@ const Auth: React.FC = () => {
                       value={opt.value}
                       checked={suForm.hazardVulnerability === opt.value}
                       onChange={() => setSuForm(f => ({ ...f, hazardVulnerability: opt.value }))}
-                      disabled={loading}
+                      disabled={isAnyLoading}
                       className="sr-only"
                     />
                     <span className="auth-hazard-card__emoji">{opt.emoji}</span>
@@ -532,20 +695,28 @@ const Auth: React.FC = () => {
             <div className="auth-field">
               <label htmlFor="su-medical" className="auth-field__label">
                 <Heart size={14} className="auth-field__label-icon" />
-                Medical / Mobility Notes
-                <span className="auth-field__optional">(Optional)</span>
+                {language === 'bm' ? 'Nota Kesihatan / Mobiliti' : 'Medical / Mobility Notes'}
+                <span className="auth-field__optional">
+                  {language === 'bm' ? '(Pilihan)' : '(Optional)'}
+                </span>
               </label>
               <textarea
                 id="su-medical"
                 value={suForm.medicalNotes}
                 onChange={e => setSuForm(f => ({ ...f, medicalNotes: e.target.value }))}
-                placeholder="e.g. Wheelchair user, diabetic, requires insulin refrigeration&hellip;"
-                disabled={loading}
+                placeholder={
+                  language === 'bm'
+                    ? 'cth. Pengguna kerusi roda, pesakit diabetes, memerlukan peti sejuk insulin...'
+                    : 'e.g. Wheelchair user, diabetic, requires insulin refrigeration\u2026'
+                }
+                disabled={isAnyLoading}
                 rows={3}
                 className="auth-field__textarea"
               />
               <p className="auth-field__hint">
-                This information is shared with rescue teams only during an emergency.
+                {language === 'bm'
+                  ? 'Maklumat ini dikongsi dengan pasukan penyelamat hanya ketika kecemasan bencana.'
+                  : 'This information is shared with rescue teams only during an emergency.'}
               </p>
             </div>
 
@@ -553,18 +724,39 @@ const Auth: React.FC = () => {
               id="btn-signup"
               type="submit"
               className="auth-submit"
-              disabled={loading}
+              disabled={isAnyLoading}
             >
               {loading
-                ? <><Loader2 size={18} className="auth-submit__spinner" /> Creating account&hellip;</>
-                : <><span>Create My Account</span><ArrowRight size={18} /></>
+                ? <><Loader2 size={18} className="auth-submit__spinner" /> {language === 'bm' ? 'Mendaftar...' : 'Creating account\u2026'}</>
+                : <><span>{language === 'bm' ? 'Cipta Akaun Saya' : 'Create My Account'}</span><ArrowRight size={18} /></>
               }
             </button>
 
+            {/* Google Sign-in divider */}
+            <div className="auth-divider">
+              <span>{language === 'bm' ? 'atau' : 'or'}</span>
+            </div>
+
+            {/* Continue with Google button */}
+            <button
+              id="btn-google-signup"
+              type="button"
+              className="auth-google-btn"
+              onClick={handleGoogleSignIn}
+              disabled={isAnyLoading}
+            >
+              {googleLoading ? (
+                <Loader2 size={18} className="auth-google-btn__spinner" />
+              ) : (
+                <GoogleIcon size={18} />
+              )}
+              <span>{language === 'bm' ? 'Teruskan dengan Google' : 'Continue with Google'}</span>
+            </button>
+
             <p className="auth-footer-note">
-              Already have an account?{' '}
+              {language === 'bm' ? 'Sudah mempunyai akaun?' : 'Already have an account?'}{' '}
               <button type="button" className="auth-link" onClick={() => switchMode('signin')}>
-                Sign in &rarr;
+                {language === 'bm' ? 'Log masuk &rarr;' : 'Sign in &rarr;'}
               </button>
             </p>
           </form>
@@ -572,7 +764,7 @@ const Auth: React.FC = () => {
 
         {/* Footer branding */}
         <p className="auth-brand-note">
-          🛡️ Your data is protected and only used for disaster response coordination.
+          🛡️ {language === 'bm' ? 'Data anda dilindungi dan hanya digunakan untuk penyelarasan bantuan bencana.' : 'Your data is protected and only used for disaster response coordination.'}
         </p>
       </div>
     </div>
