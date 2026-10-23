@@ -250,7 +250,7 @@ export const LiveWeatherCard: React.FC = () => {
           justifyContent: 'space-between',
           gap: '8px',
           padding: '6px 8px',
-          borderRadius: 'var(--radius-md)',
+          borderRadius: 'var(--radius-none)',
           background: 'var(--bg-card)',
           border: '1px solid var(--border-subtle)',
           marginTop: '6px',
@@ -571,7 +571,7 @@ export const LiveWeatherCard: React.FC = () => {
                   fontSize: '11px',
                   fontWeight: 800,
                   padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
+                  borderRadius: 'var(--radius-xs)',
                   border: `1px solid ${ipuMeta.border}`,
                   background: 'var(--bg-surface)',
                   color: ipuMeta.color
@@ -615,7 +615,7 @@ export const LiveWeatherCard: React.FC = () => {
           <div
             style={{
               padding: '10px',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: 'var(--radius-none)',
               background: 'var(--bg-surface)',
               border: '1px solid var(--border-subtle)',
               display: 'flex',
@@ -634,7 +634,7 @@ export const LiveWeatherCard: React.FC = () => {
                 style={{
                   padding: '4px 8px',
                   fontSize: '11.5px',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 'var(--radius-xs)',
                   border: '1px solid var(--border-subtle)',
                   background: 'var(--input-bg)',
                   color: 'var(--text-primary)',
@@ -666,7 +666,7 @@ export const LiveWeatherCard: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '4px 8px',
-                        borderRadius: 'var(--radius-sm)',
+                        borderRadius: 'var(--radius-xs)',
                         background: 'var(--bg-card)',
                         fontSize: '11px',
                         border: '1px solid var(--border-subtle)'
@@ -684,7 +684,7 @@ export const LiveWeatherCard: React.FC = () => {
                             fontSize: '9.5px',
                             fontWeight: 700,
                             padding: '1px 5px',
-                            borderRadius: 'var(--radius-sm)',
+                            borderRadius: 'var(--radius-xs)',
                             background: adv.bgVar,
                             color: adv.colorVar,
                             border: `1px solid ${adv.borderVar}`

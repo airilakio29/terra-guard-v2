@@ -142,7 +142,7 @@ export const StatusScreen: React.FC = () => {
                   minWidth: 0,
                   padding: '6px 12px',
                   fontSize: '12px',
-                  borderRadius: 'var(--radius-full)',
+                  borderRadius: 'var(--radius-xs)',
                   border: '1px solid var(--brand-border)',
                   background: 'var(--input-bg)',
                   color: 'var(--text-primary)',
