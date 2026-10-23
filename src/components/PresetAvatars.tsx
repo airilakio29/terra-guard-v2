@@ -300,7 +300,7 @@ export const AvatarDisplay: React.FC<{
     return (
       <div 
         className={`avatar-frame ${className}`} 
-        style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ width: size, height: size, borderRadius: 'var(--radius-xs)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         <SvgComp size={size} />
       </div>
@@ -317,7 +317,7 @@ export const AvatarDisplay: React.FC<{
         style={{
           width: size,
           height: size,
-          borderRadius: '50%',
+          borderRadius: 'var(--radius-xs)',
           objectFit: 'cover',
           display: 'block',
         }}
@@ -333,7 +333,7 @@ export const AvatarDisplay: React.FC<{
       style={{
         width: size,
         height: size,
-        borderRadius: '50%',
+        borderRadius: 'var(--radius-xs)',
         background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-hover))',
         color: 'var(--text-inverse)',
         display: 'flex',

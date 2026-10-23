@@ -27,7 +27,7 @@ export const AvatarCropper: React.FC<AvatarCropperProps> = ({
   const text = {
     en: {
       title: 'Crop & Resize Avatar',
-      subtitle: 'Position your photo inside the circular guide',
+      subtitle: 'Position your photo inside the square guide',
       selectFile: 'Choose Image File',
       supportedTypes: 'Supports JPEG, PNG, or WebP up to 5MB',
       zoom: 'Zoom',
@@ -41,7 +41,7 @@ export const AvatarCropper: React.FC<AvatarCropperProps> = ({
     },
     bm: {
       title: 'Potong & Saizkan Avatar',
-      subtitle: 'Laraskan foto anda di dalam bulatan panduan',
+      subtitle: 'Laraskan foto anda di dalam bingkai segiempat panduan',
       selectFile: 'Pilih Fail Imej',
       supportedTypes: 'Menyokong JPEG, PNG, atau WebP hingga 5MB',
       zoom: 'Zum',
@@ -155,9 +155,9 @@ export const AvatarCropper: React.FC<AvatarCropperProps> = ({
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // Circular clip mask for clean avatar
+      // Square clip mask for clean sharp avatar
       ctx.beginPath();
-      ctx.arc(targetSize / 2, targetSize / 2, targetSize / 2, 0, Math.PI * 2);
+      ctx.rect(0, 0, targetSize, targetSize);
       ctx.closePath();
       ctx.clip();
 
