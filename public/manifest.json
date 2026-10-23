@@ -2,33 +2,65 @@
   "name": "Terra Guard V2",
   "short_name": "Terra Guard",
   "description": "Citizen Disaster Companion — Mobile-first flood and disaster safety guidance for everyday Malaysians.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
+  "lang": "en",
+  "categories": ["utilities", "weather", "navigation"],
+  "theme_color": "#F8FAFC",
   "background_color": "#F8FAFC",
-  "theme_color": "#0284C7",
-  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Emergency SOS & Kit",
+      "short_name": "SOS & Kit",
+      "description": "Instant emergency hotline access and 72-hour survival checklist",
+      "url": "/?tab=sos",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
-      "src": "/logo.png",
-      "sizes": "500x500",
-      "type": "image/png"
+      "name": "Live Hazard Map",
+      "short_name": "Live Map",
+      "description": "Live hazard zones, flood levels, and nearest evacuation shelters",
+      "url": "/?tab=map",
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
