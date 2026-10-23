@@ -12,16 +12,21 @@ import {
   Info, 
   LogIn, 
   Camera,
-  Sliders
+  Sliders,
+  Download,
+  Smartphone,
+  CheckCircle2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { usePwa } from '../context/PwaContext';
 import { THEME_REGISTRY } from '../data/themes';
 import { PRESET_AVATARS, AvatarDisplay } from './PresetAvatars';
 import { AvatarCropper } from './AvatarCropper';
 import { Logo } from './Logo';
 
 export const SettingsScreen: React.FC = () => {
+  const { isStandalone, isIos, promptInstall, setShowIosGuide } = usePwa();
   const { 
     language, 
     t, 
@@ -481,6 +486,57 @@ export const SettingsScreen: React.FC = () => {
             <strong>{t.safetyGuaranteeTitle}</strong>
             <p>{t.safetyGuaranteeDesc}</p>
           </div>
+        </div>
+
+        {/* PWA Installation & Offline Standalone Status */}
+        <div className="settings-pwa-card">
+          <div className="settings-pwa-card__header">
+            <div className="settings-pwa-card__info">
+              <Smartphone size={20} color="var(--brand-primary)" />
+              <div>
+                <div className="settings-pwa-card__title">
+                  {language === 'bm' ? 'Aplikasi Progresif (PWA)' : 'Progressive Web App (PWA)'}
+                </div>
+                <div className="settings-pwa-card__subtitle">
+                  {isStandalone
+                    ? (language === 'bm'
+                        ? 'Beroperasi dalam Mod Sendiri (Standalone). Sokongan luar talian penuh aktif.'
+                        : 'Running in Standalone mode. Full offline emergency support active.')
+                    : (language === 'bm'
+                        ? 'Pasang ke skrin utama untuk akses luar talian dan amaran bencana pantas.'
+                        : 'Install to your home screen for instant offline access and fast emergency triage.')}
+                </div>
+              </div>
+            </div>
+
+            {isStandalone && (
+              <span className="settings-pwa-badge">
+                <CheckCircle2 size={12} color="var(--safe-accent)" />
+                <span>{language === 'bm' ? 'Dipasang' : 'Installed'}</span>
+              </span>
+            )}
+          </div>
+
+          {!isStandalone && (
+            <button
+              type="button"
+              className="settings-pwa-install-btn"
+              onClick={() => {
+                if (isIos) {
+                  setShowIosGuide(true);
+                } else {
+                  promptInstall();
+                }
+              }}
+            >
+              <Download size={14} />
+              <span>
+                {isIos
+                  ? (language === 'bm' ? 'Panduan Pasang pada iOS' : 'Install on iPhone / iPad')
+                  : (language === 'bm' ? 'Pasang Aplikasi' : 'Install App')}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Official Application Card with Central Logo */}

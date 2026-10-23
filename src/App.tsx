@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PwaProvider } from './context/PwaContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
@@ -10,6 +11,10 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { FloatingBackground } from './components/FloatingBackground';
 import { BottomNav } from './components/BottomNav';
 import { SplashScreen } from './components/SplashScreen';
+import { OfflineBanner } from './components/OfflineBanner';
+import { PwaInstallBanner } from './components/PwaInstallBanner';
+import { PwaUpdateBanner } from './components/PwaUpdateBanner';
+import { IosInstallModal } from './components/IosInstallModal';
 import Auth from './components/Auth';
 import { Smartphone, LayoutDashboard, Maximize2 } from 'lucide-react';
 
@@ -50,6 +55,7 @@ const MainLayout: React.FC = () => {
       {/* Main App Container */}
       <div className={`app-container app-container--${viewMode}`}>
         <Header />
+        <OfflineBanner />
 
         <div key={activeTab} className="tab-screen-container">
           {activeTab === 'status' && <StatusScreen />}
@@ -61,6 +67,11 @@ const MainLayout: React.FC = () => {
 
         <BottomNav />
       </div>
+
+      {/* Floating PWA Controls & Dialogs */}
+      <PwaUpdateBanner />
+      <PwaInstallBanner />
+      <IosInstallModal />
     </div>
   );
 };
@@ -119,8 +130,10 @@ const AppRoot: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRoot />
-    </AuthProvider>
+    <PwaProvider>
+      <AuthProvider>
+        <AppRoot />
+      </AuthProvider>
+    </PwaProvider>
   );
 }

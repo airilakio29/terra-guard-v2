@@ -16,6 +16,7 @@ import {
   Building2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { usePwa } from '../context/PwaContext';
 import { iconUrl, rainOutlook, getIpuMeta } from '../services/weather';
 import {
   fetchDoeApimsTelemetry,
@@ -117,6 +118,8 @@ export const LiveWeatherCard: React.FC = () => {
     currentScenario
   } = useApp();
 
+  const { isOnline } = usePwa();
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedState, setSelectedState] = useState<string>('all');
   const [apimsData, setApimsData] = useState<ApimsResponse | null>(null);
@@ -205,6 +208,13 @@ export const LiveWeatherCard: React.FC = () => {
   const activeTimestampMs = isDemo
     ? Date.now() - 12 * 60 * 1000
     : apimsData?.nearestStation?.datetimeMs ?? weather.stationUpdatedMs ?? Date.now();
+
+  const isApimsCached =
+    !isDemo &&
+    (apimsData?.source === 'cached-doe-apims' ||
+      apimsData?.source === 'offline-doe-apims' ||
+      apimsData?.isStale ||
+      !isOnline);
 
   const ipuBarPct = Math.min(100, Math.round((activeIpu / 300) * 100));
 
@@ -448,7 +458,13 @@ export const LiveWeatherCard: React.FC = () => {
               <Eye size={13} color={ipuMeta.color} />
               <span>{bm ? 'INDEKS IPU (JAS)' : 'MALAYSIA IPU'}</span>
             </div>
-            {apimsLoading && <Radio size={10} className="spin-icon" color="var(--brand-primary)" />}
+            {isApimsCached ? (
+              <span className="tactical-offline-badge">
+                {bm ? 'Luar Talian' : 'Offline'}
+              </span>
+            ) : apimsLoading ? (
+              <Radio size={10} className="spin-icon" color="var(--brand-primary)" />
+            ) : null}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px' }}>
             <div className="tabular-mono tactical-bento-tile__value" style={{ color: ipuMeta.color }}>
@@ -477,7 +493,11 @@ export const LiveWeatherCard: React.FC = () => {
           <div className="tabular-mono tactical-bento-tile__sub" style={{ display: 'flex', justifyContent: 'space-between', gap: '2px' }}>
             <span>{activeDominant}</span>
             <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-              {activeDistanceKm > 0 ? `${activeDistanceKm}km` : (bm ? 'Stesen Terdekat' : 'Nearest')}
+              {isApimsCached
+                ? timeAgo(activeTimestampMs, bm)
+                : activeDistanceKm > 0
+                  ? `${activeDistanceKm}km`
+                  : (bm ? 'Stesen Terdekat' : 'Nearest')}
             </span>
           </div>
         </div>

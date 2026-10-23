@@ -17,6 +17,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { usePwa } from '../context/PwaContext';
 import { EMERGENCY_CONTACTS, OFFLINE_CHECKLIST_ITEMS } from '../data/scenarios';
 import type { EmergencyContact } from '../types';
 
@@ -34,6 +35,8 @@ export const SosScreen: React.FC = () => {
     t
   } = useApp();
 
+  const { setIsSosActive } = usePwa();
+
   const bm = language === 'bm';
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [coordsCopied, setCoordsCopied] = useState(false);
@@ -44,6 +47,14 @@ export const SosScreen: React.FC = () => {
   const [sosTriggered, setSosTriggered] = useState(false);
   const holdStartRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  // Suppress non-critical service worker update prompts during active SOS emergencies
+  useEffect(() => {
+    setIsSosActive(sosTriggered || isHolding);
+    return () => {
+      setIsSosActive(false);
+    };
+  }, [sosTriggered, isHolding, setIsSosActive]);
 
   const totalItems = OFFLINE_CHECKLIST_ITEMS.length;
   const checkedCount = OFFLINE_CHECKLIST_ITEMS.filter(item => checklist[item.id]).length;
