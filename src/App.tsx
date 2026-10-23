@@ -69,25 +69,49 @@ const MainLayout: React.FC = () => {
 
 const AppRoot: React.FC = () => {
   const { user, isGuest } = useAuth();
-  const [splashFinished, setSplashFinished] = useState(false);
+  // Splash lifecycle: 'visible' -> 'exiting' -> 'unmounted'
+  const [splashState, setSplashState] = useState<'visible' | 'exiting' | 'unmounted'>('visible');
   const isAuthenticated = Boolean(user || isGuest);
+
+  const isSplashHidden = splashState === 'visible';
+  const showSplash = splashState !== 'unmounted';
 
   return (
     <AppProvider>
-      {/* Pre-mount underlying screen while Splash is active so live telemetry loads with ZERO blank gap */}
-      {isAuthenticated ? (
-        <div className="screen-transition" key="screen-main">
-          <MainLayout />
-        </div>
-      ) : (
-        <div className="screen-transition" key="screen-login">
-          <Auth />
-        </div>
-      )}
+      {/*
+        Pre-mount underlying screen while Splash is active.
+        While splash is visible, the underlying screen is completely hidden and non-interactive
+        (visibility: hidden, opacity: 0, inert attribute) so it cannot paint through or take focus.
+        When splash starts leaving, reveal the next screen immediately.
+      */}
+      <div
+        className="screen-transition-wrapper"
+        style={{
+          visibility: isSplashHidden ? 'hidden' : 'visible',
+          opacity: isSplashHidden ? 0 : 1,
+          transition: 'opacity 250ms ease-in',
+          width: '100%',
+          minHeight: '100vh',
+        }}
+        inert={isSplashHidden ? true : undefined}
+      >
+        {isAuthenticated ? (
+          <div className="screen-transition" key="screen-main">
+            <MainLayout />
+          </div>
+        ) : (
+          <div className="screen-transition" key="screen-login">
+            <Auth />
+          </div>
+        )}
+      </div>
 
-      {/* Fullscreen Live Telemetry Splash Overlay */}
-      {!splashFinished && (
-        <SplashScreen onFinish={() => setSplashFinished(true)} />
+      {/* Fullscreen Minimal Splash Overlay (highest z-index, fully opaque background) */}
+      {showSplash && (
+        <SplashScreen
+          onStartExit={() => setSplashState('exiting')}
+          onFinish={() => setSplashState('unmounted')}
+        />
       )}
     </AppProvider>
   );
