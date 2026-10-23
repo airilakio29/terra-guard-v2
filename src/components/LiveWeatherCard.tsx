@@ -131,8 +131,8 @@ export const LiveWeatherCard: React.FC = () => {
     let isSubscribed = true;
     setApimsLoading(true);
 
-    const lat = currentScenario.lat || 3.0515;
-    const lon = currentScenario.lon || 101.5823;
+    const lat = currentScenario.lat || 2.7258;
+    const lon = currentScenario.lon || 101.9424;
 
     fetchDoeApimsTelemetry(lat, lon, selectedState)
       .then(res => {

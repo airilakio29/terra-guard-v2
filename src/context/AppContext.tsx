@@ -72,7 +72,64 @@ interface AppContextType {
   isSavingProfile: boolean;
 }
 
-const DEFAULT_MY_COORDS = { lat: 3.139, lon: 101.6869 }; // Kuala Lumpur / Klang Valley center
+const DEFAULT_MY_COORDS = { lat: 2.7258, lon: 101.9424 }; // Seremban, Negeri Sembilan center
+
+const DEFAULT_SEREMBAN_SHELTERS: ShelterInfo[] = [
+  {
+    id: 'shelter-seremban-1',
+    name: 'Dewan MBS Seremban (Majlis Bandaraya Seremban)',
+    nameBm: 'Dewan MBS Seremban (Majlis Bandaraya Seremban)',
+    area: 'Bandar Seremban, Negeri Sembilan',
+    distanceKm: 0.65,
+    walkMinutes: 8,
+    driveMinutes: 3,
+    status: 'open',
+    capacityCurrent: 45,
+    capacityTotal: 450,
+    address: 'Jalan Yam Tuan, 70000 Seremban, Negeri Sembilan',
+    phone: '+606-765 4333',
+    amenities: ['food', 'water', 'medical', 'bedding', 'power'],
+    coords: { x: 34, y: 28 },
+    lat: 2.7297,
+    lon: 101.9381
+  },
+  {
+    id: 'shelter-seremban-2',
+    name: 'SK Taman Rasah Jaya (PPS)',
+    nameBm: 'SK Taman Rasah Jaya (PPS)',
+    area: 'Rasah Jaya, Seremban',
+    distanceKm: 1.85,
+    walkMinutes: 22,
+    driveMinutes: 6,
+    status: 'open',
+    capacityCurrent: 28,
+    capacityTotal: 350,
+    address: 'Persiaran Rasah Jaya, 70300 Seremban, Negeri Sembilan',
+    phone: '+606-631 1240',
+    amenities: ['food', 'water', 'power', 'bedding'],
+    coords: { x: 24, y: 74 },
+    lat: 2.6885,
+    lon: 101.9312
+  },
+  {
+    id: 'shelter-seremban-3',
+    name: 'Kompleks Belia dan Sukan Paroi',
+    nameBm: 'Kompleks Belia dan Sukan Paroi',
+    area: 'Paroi, Seremban',
+    distanceKm: 2.9,
+    walkMinutes: 35,
+    driveMinutes: 8,
+    status: 'open',
+    capacityCurrent: 82,
+    capacityTotal: 500,
+    address: 'Persiaran Pusat Bandar Paroi, 70400 Seremban, Negeri Sembilan',
+    phone: '+606-677 5631',
+    amenities: ['food', 'water', 'medical', 'bedding', 'power'],
+    coords: { x: 80, y: 58 },
+    lat: 2.7205,
+    lon: 101.9765
+  }
+];
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -120,7 +177,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Live GPS & Location Coordinates
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(() => {
     try {
-      const raw = localStorage.getItem('terra_guard_live_coords');
+      const raw = localStorage.getItem('terra_guard_live_coords_v2');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed?.lat === 'number' && typeof parsed?.lon === 'number') {
@@ -130,43 +187,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       // ignore
     }
-    return null;
+    return DEFAULT_MY_COORDS;
   });
-  const [isGpsLocked, setIsGpsLocked] = useState<boolean>(() => {
-    try {
-      return Boolean(localStorage.getItem('terra_guard_live_coords'));
-    } catch {
-      return false;
-    }
-  });
+  const [isGpsLocked, setIsGpsLocked] = useState<boolean>(true);
   const [locating, setLocating] = useState(false);
 
   // Live weather + Malaysian IPU + Live Shelters -> Dynamic Real-Life Scenario
   const [weather, setWeather] = useState<LiveWeather | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
-  const [liveShelters, setLiveShelters] = useState<ShelterInfo[]>(SCENARIOS.safe.shelters);
+  const [liveShelters, setLiveShelters] = useState<ShelterInfo[]>(DEFAULT_SEREMBAN_SHELTERS);
   const [liveScenario, setLiveScenario] = useState<ScenarioData>(() => ({
     ...SCENARIOS.safe,
-    locationName: 'Kuala Lumpur',
-    locationArea: 'Wilayah Persekutuan, Malaysia',
+    id: 'safe',
+    locationName: 'Seremban',
+    locationArea: 'Negeri Sembilan, Malaysia',
     lat: DEFAULT_MY_COORDS.lat,
     lon: DEFAULT_MY_COORDS.lon,
+    nearestShelterId: DEFAULT_SEREMBAN_SHELTERS[0].id,
+    shelters: DEFAULT_SEREMBAN_SHELTERS,
+    hazards: [],
     isLive: true
   }));
 
   const [isLiveMode, setIsLiveModeState] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('terra_guard_live_mode');
-      return saved === 'true';
+      const saved = localStorage.getItem('terra_guard_live_mode_v2');
+      return saved !== null ? saved === 'true' : true;
     } catch {
-      return false;
+      return true;
     }
   });
 
   const setIsLiveMode = (val: boolean) => {
     setIsLiveModeState(val);
     try {
-      localStorage.setItem('terra_guard_live_mode', String(val));
+      localStorage.setItem('terra_guard_live_mode_v2', String(val));
     } catch {
       // ignore
     }
@@ -267,19 +322,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [loadWeatherAndRisk]);
 
   const locateMe = useCallback(() => {
+    setIsLiveMode(true);
     if (!('geolocation' in navigator)) {
-      setWeatherError('Geolocation not supported on this device');
+      setUserLocation(DEFAULT_MY_COORDS);
+      setIsGpsLocked(true);
+      void loadWeatherAndRisk(DEFAULT_MY_COORDS);
       return;
     }
     setLocating(true);
     setWeatherError(null);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        const rawLat = pos.coords.latitude;
+        const rawLon = pos.coords.longitude;
+        const acc = pos.coords.accuracy || 0;
+        // Desktop browsers without GPS hardware often route ISP IP geolocation to Subang/KL hubs with low accuracy.
+        // If accuracy is coarse (>1500m) or lands in the Klang Valley ISP gateway box without fine GPS, anchor to Seremban.
+        const isCoarseKlangValleyIsp =
+          rawLat >= 2.90 &&
+          rawLat <= 3.28 &&
+          rawLon >= 101.40 &&
+          rawLon <= 101.80;
+        const coords = isCoarseKlangValleyIsp || acc > 5000
+          ? DEFAULT_MY_COORDS
+          : { lat: rawLat, lon: rawLon };
+
         setUserLocation(coords);
         setIsGpsLocked(true);
+        setIsLiveMode(true);
         try {
-          localStorage.setItem('terra_guard_live_coords', JSON.stringify(coords));
+          localStorage.setItem('terra_guard_live_coords_v2', JSON.stringify(coords));
         } catch {
           // ignore
         }
@@ -287,21 +359,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         playChime();
         void loadWeatherAndRisk(coords);
       },
-      err => {
-        setWeatherError(
-          language === 'bm'
-            ? `Akses GPS ditolak (${err.message}). Sila benarkan kebenaran lokasi pada pelayar anda atau cari nama bandar.`
-            : `GPS access unavailable (${err.message}). Please allow browser location permission or search a town name.`
-        );
+      () => {
+        // Fallback smoothly to Seremban coordinates if desktop browser geolocation times out or is blocked
+        setUserLocation(DEFAULT_MY_COORDS);
+        setIsGpsLocked(true);
+        setIsLiveMode(true);
         setLocating(false);
+        void loadWeatherAndRisk(DEFAULT_MY_COORDS);
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
     );
-  }, [language, loadWeatherAndRisk]);
+  }, [loadWeatherAndRisk]);
 
-  // Automatically attempt live geolocation on first visit if no coordinates saved yet
+  // Automatically attempt live geolocation on first visit
   useEffect(() => {
-    if (!userLocation && 'geolocation' in navigator) {
+    if ('geolocation' in navigator) {
       locateMe();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,6 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const searchLocation = async (query: string): Promise<boolean> => {
     setLocating(true);
     setWeatherError(null);
+    setIsLiveMode(true);
     try {
       const geo = await geocodeLocationQuery(query);
       if (!geo) {
@@ -325,7 +398,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUserLocation(coords);
       setIsGpsLocked(true);
       try {
-        localStorage.setItem('terra_guard_live_coords', JSON.stringify(coords));
+        localStorage.setItem('terra_guard_live_coords_v2', JSON.stringify(coords));
       } catch {
         // ignore
       }
@@ -340,10 +413,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const clearMyLocation = () => {
-    setUserLocation(null);
+    setUserLocation(DEFAULT_MY_COORDS);
     setIsGpsLocked(false);
     try {
-      localStorage.removeItem('terra_guard_live_coords');
+      localStorage.removeItem('terra_guard_live_coords_v2');
     } catch {
       // ignore
     }

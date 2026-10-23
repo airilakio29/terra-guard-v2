@@ -152,10 +152,10 @@ function parseRawFeatures(features: Array<{ attributes: Record<string, unknown> 
     return {
       stationId: String(a.STATION_ID || ''),
       stationLocation: String(a.STATION_LOCATION || 'Malaysia Station'),
-      stateName: String(a.STATE_NAME || 'Selangor'),
+      stateName: String(a.STATE_NAME || 'Negeri Sembilan'),
       place: typeof a.PLACE === 'string' ? a.PLACE : undefined,
-      lat: Number(a.LATITUDE) || 3.05,
-      lon: Number(a.LONGITUDE) || 101.58,
+      lat: Number(a.LATITUDE) || 2.7258,
+      lon: Number(a.LONGITUDE) || 101.9424,
       ipu: ipuNum,
       category: classifyMalaysianIpu(ipuNum),
       dominantPollutant: dominant,
@@ -172,8 +172,8 @@ function getFallbackStations(): DoeStationRecord[] {
       stationLocation: String(s.stationLocation || ''),
       stateName: String(s.stateName || ''),
       place: typeof s.place === 'string' ? s.place : undefined,
-      lat: Number(s.lat) || 3.05,
-      lon: Number(s.lon) || 101.58,
+      lat: Number(s.lat) || 2.7258,
+      lon: Number(s.lon) || 101.9424,
       ipu: ipuNum,
       category: classifyMalaysianIpu(ipuNum),
       dominantPollutant: parseParamSymbol(String(s.paramSymbol || '**'), String(s.paramSelected || 'PM2.5')),
@@ -187,8 +187,8 @@ function getFallbackStations(): DoeStationRecord[] {
  * with Haversine distance ranking and failover caching.
  */
 export async function fetchDoeApimsTelemetry(
-  userLat = 3.0515,
-  userLon = 101.5823,
+  userLat = 2.7258,
+  userLon = 101.9424,
   stateFilter?: string
 ): Promise<ApimsResponse> {
   let stations: DoeStationRecord[] = [];

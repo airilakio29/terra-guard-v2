@@ -181,8 +181,8 @@ export async function fetchLiveWeather(lat: number, lon: number, lang: 'en' | 'b
       }).catch(() => null)
     : Promise.resolve(null);
 
-  let placeName = 'Subang Jaya';
-  let districtArea = 'Selangor, Malaysia';
+  let placeName = 'Seremban';
+  let districtArea = 'Negeri Sembilan, Malaysia';
   let description = lang === 'bm' ? 'Mendung' : 'Cloudy';
   let icon = '04d';
   let conditionId = 804;
