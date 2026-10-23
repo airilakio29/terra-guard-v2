@@ -177,7 +177,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Live GPS & Location Coordinates
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(() => {
     try {
-      const raw = localStorage.getItem('terra_guard_live_coords_v2');
+      const raw = localStorage.getItem('terra_guard_live_coords_v3');
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed?.lat === 'number' && typeof parsed?.lon === 'number') {
@@ -333,25 +333,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWeatherError(null);
     navigator.geolocation.getCurrentPosition(
       pos => {
-        const rawLat = pos.coords.latitude;
-        const rawLon = pos.coords.longitude;
-        const acc = pos.coords.accuracy || 0;
-        // Desktop browsers without GPS hardware often route ISP IP geolocation to Subang/KL hubs with low accuracy.
-        // If accuracy is coarse (>1500m) or lands in the Klang Valley ISP gateway box without fine GPS, anchor to Seremban.
-        const isCoarseKlangValleyIsp =
-          rawLat >= 2.90 &&
-          rawLat <= 3.28 &&
-          rawLon >= 101.40 &&
-          rawLon <= 101.80;
-        const coords = isCoarseKlangValleyIsp || acc > 5000
-          ? DEFAULT_MY_COORDS
-          : { lat: rawLat, lon: rawLon };
+        const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
 
         setUserLocation(coords);
         setIsGpsLocked(true);
         setIsLiveMode(true);
         try {
-          localStorage.setItem('terra_guard_live_coords_v2', JSON.stringify(coords));
+          localStorage.setItem('terra_guard_live_coords_v3', JSON.stringify(coords));
         } catch {
           // ignore
         }
