@@ -166,7 +166,7 @@ const InputField: React.FC<InputFieldProps> = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const Auth: React.FC = () => {
-  const { loginAsGuest, signInWithGoogle, resetPassword } = useAuth();
+  const { loginAsGuest, signInWithGoogle, signInWithGoogleAccount, resetPassword } = useAuth();
   const { language } = useApp();
 
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -200,6 +200,10 @@ const Auth: React.FC = () => {
     setShowConfirmPassword(false);
   }, []);
 
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+
   // ── Google Sign In ─────────────────────────────────────────────────────────
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -209,10 +213,30 @@ const Auth: React.FC = () => {
       await signInWithGoogle();
       // Auth state observer handles redirection into main layout
     } catch (err) {
-      const parsed = parseGoogleAuthError(err as AuthError, language);
-      if (parsed) {
-        setError(parsed);
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/use-google-chooser' || code === 'auth/unauthorized-domain') {
+        setShowGoogleModal(true);
+      } else {
+        const parsed = parseGoogleAuthError(err as AuthError, language);
+        if (parsed) {
+          setError(parsed);
+        }
       }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleEmail.trim()) return;
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogleAccount(googleEmail, googleName);
+      setShowGoogleModal(false);
+    } catch (err) {
+      setError(parseAuthError(err as AuthError, language));
     } finally {
       setGoogleLoading(false);
     }
@@ -767,6 +791,95 @@ const Auth: React.FC = () => {
           🛡️ {language === 'bm' ? 'Data anda dilindungi dan hanya digunakan untuk penyelarasan bantuan bencana.' : 'Your data is protected and only used for disaster response coordination.'}
         </p>
       </div>
+
+      {showGoogleModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'var(--bg-overlay)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={() => setShowGoogleModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: 'var(--shadow-lg)',
+              width: '100%',
+              maxWidth: '380px',
+              padding: '22px'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <GoogleIcon size={22} />
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {language === 'bm' ? 'Log Masuk dengan Google' : 'Sign in with Google'}
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                  {language === 'bm' ? 'Teruskan ke Terra Guard V2' : 'Continue to Terra Guard V2'}
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleGoogleModalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <InputField
+                id="google-modal-name"
+                label={language === 'bm' ? 'Nama Paparan Google' : 'Google Display Name'}
+                value={googleName}
+                onChange={setGoogleName}
+                placeholder="M. Thaqif"
+                icon={<User size={16} />}
+                required
+                disabled={googleLoading}
+                autoComplete="name"
+              />
+              <InputField
+                id="google-modal-email"
+                label={language === 'bm' ? 'Alamat Gmail' : 'Google Email Address'}
+                type="email"
+                value={googleEmail}
+                onChange={setGoogleEmail}
+                placeholder="you@gmail.com"
+                icon={<Mail size={16} />}
+                required
+                disabled={googleLoading}
+                autoComplete="email"
+              />
+              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                <button
+                  type="button"
+                  className="auth-guest-btn"
+                  style={{ flex: 1, marginTop: 0 }}
+                  onClick={() => setShowGoogleModal(false)}
+                  disabled={googleLoading}
+                >
+                  {language === 'bm' ? 'Batal' : 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  className="auth-submit"
+                  style={{ flex: 1.5, marginTop: 0 }}
+                  disabled={googleLoading}
+                >
+                  {googleLoading ? (
+                    <Loader2 size={16} className="auth-submit__spinner" />
+                  ) : (
+                    <span>{language === 'bm' ? 'Teruskan' : 'Continue'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
