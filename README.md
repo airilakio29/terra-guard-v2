@@ -16,6 +16,8 @@
 ## ✨ Key Features
 
 - **⚡ Split-Second Risk Status**: Color/icon-based alert tiers (*All Clear*, *Flash Flood Advisory*, *Critical Evacuation Directive*) with plain-language instructions — zero confusing gauges or radar telemetry.
+- **🔐 Google Sign-In & Emergency Guest Access**: One-tap sign-in with Google (`GoogleAuthProvider`), redirect fallback for iOS standalone PWAs, password reset, and instant emergency guest access.
+- **⏳ Minimal Non-Blocking Splash**: Centered breathing logo and 120px × 3px sharp square indicator with full paint isolation and zero splash/login overlay.
 - **🗺️ Expansive Live Map**: Clean vector map displaying your live GPS location, real-time hazard polygons (with water depth readings), and open relief centers (PPS) with capacity meters and walking navigation routes.
 - **🤖 Zero-Typing AI Safety Assistant**: 1-tap pre-composed triage chips based on verified National Civil Defence (APM / NADMA / Bomba) protocols, with integrated **Web Speech API ("Read Aloud")** for hands-free audio guidance while moving.
 - **🎒 72-Hour Offline Survival Kit & Hotlines**: 100% offline checklist with local storage persistence and 1-tap direct dials to MERS 999, Bomba Dan Penyelamat, APM, and JKM Disaster Relief.
@@ -27,8 +29,11 @@
 ## 🛠️ Tech Stack
 
 - **Framework**: React 19 + TypeScript + Vite
-- **Styling**: Vanilla CSS Design System (clean light mode, custom design tokens, zero Tailwind dependencies)
-- **Icons**: Lucide React
+- **Styling**: Vanilla CSS Design System (clean design tokens, sharp square shape language, zero Tailwind dependencies)
+- **Authentication**: Firebase Authentication (Email/Password, Google OAuth Popup & Redirect, Anonymous Guest)
+- **Database**: Cloud Firestore (civilian profile sync and hazard caches)
+- **Token Compliance**: Automated script (`npm run check:colors`) ensuring 100% tokenized color architecture
+- **Icons**: Lucide React + Official Google SVG mark
 - **Audio / Speech**: Web Audio API (tactile alert chimes) + Web Speech API (text-to-speech)
 
 ---
