@@ -313,8 +313,8 @@ export const SettingsScreen: React.FC = () => {
               <Upload size={32} color="var(--brand-primary)" />
               <p className="upload-cta-box__text">
                 {language === 'bm' 
-                  ? 'Muat naik foto anda untuk dipotong secara bulat dengan peluncur zum dan seret.'
-                  : 'Upload your photo and crop to a neat circle with zoom & pan adjustments.'}
+                  ? 'Muat naik foto anda untuk dipotong secara segiempat dengan peluncur zum dan seret.'
+                  : 'Upload your photo and crop to a neat square with zoom & pan adjustments.'}
               </p>
               <button 
                 type="button" 
@@ -382,7 +382,7 @@ export const SettingsScreen: React.FC = () => {
                         style={{ 
                           width: '5px', 
                           height: '5px', 
-                          borderRadius: '50%', 
+                          borderRadius: '1px', 
                           backgroundColor: theme.preview.accentColor 
                         }} 
                       />
@@ -488,7 +488,7 @@ export const SettingsScreen: React.FC = () => {
           style={{
             marginTop: '16px',
             padding: '16px',
-            borderRadius: 'var(--radius-md)',
+            borderRadius: 'var(--radius-none)',
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
             display: 'flex',

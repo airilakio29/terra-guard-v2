@@ -121,7 +121,7 @@ export const AssistantScreen: React.FC = () => {
                       alignItems: 'center',
                       gap: '3px',
                       padding: '1px 6px',
-                      borderRadius: '999px',
+                      borderRadius: 'var(--radius-xs)',
                       fontSize: '10px',
                       fontWeight: 700,
                       background: m.source === 'gemini' ? 'var(--brand-surface)' : 'var(--bg-subtle)',
@@ -147,7 +147,7 @@ export const AssistantScreen: React.FC = () => {
                   style={{
                     marginTop: '8px',
                     padding: '8px 10px',
-                    borderRadius: '8px',
+                    borderRadius: 'var(--radius-none)',
                     background: 'var(--brand-surface)',
                     border: '1px solid var(--brand-border)',
                     fontSize: '12px',
@@ -177,7 +177,7 @@ export const AssistantScreen: React.FC = () => {
                             color: 'var(--brand-hover)',
                             border: '1px solid var(--brand-border)',
                             padding: '2px 6px',
-                            borderRadius: '4px'
+                            borderRadius: 'var(--radius-xs)'
                           }}
                         >
                           ✓ {src}
