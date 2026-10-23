@@ -98,7 +98,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const [scenario, setScenario] = useState<RiskLevel>('safe');
-  const [activeTab, setActiveTab] = useState<AppTab>('status');
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get('tab');
+        if (tabParam === 'sos' || tabParam === 'map' || tabParam === 'assistant' || tabParam === 'settings' || tabParam === 'status') {
+          return tabParam;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 'status';
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
