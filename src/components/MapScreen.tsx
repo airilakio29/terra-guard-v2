@@ -94,13 +94,7 @@ export const MapScreen: React.FC = () => {
             className={`map-filter-pill ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            {t.mapFilterAll} ({currentScenario.hazards.length + currentScenario.shelters.length})
-          </button>
-          <button
-            className={`map-filter-pill ${filter === 'hazards' ? 'active' : ''}`}
-            onClick={() => setFilter('hazards')}
-          >
-            {t.mapFilterHazards} ({currentScenario.hazards.length})
+            {t.mapFilterAll} ({currentScenario.shelters.length})
           </button>
           <button
             className={`map-filter-pill ${filter === 'shelters' ? 'active' : ''}`}
@@ -161,10 +155,6 @@ export const MapScreen: React.FC = () => {
           <span style={{ color: 'var(--map-shelter-pin)', display: 'flex', alignItems: 'center', gap: '3px' }}>
             <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-xs)', background: 'var(--map-shelter-pin)', display: 'inline-block' }} />
             Shelter
-          </span>
-          <span style={{ color: 'var(--danger-accent)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-xs)', background: 'var(--danger-accent)', display: 'inline-block' }} />
-            Hazard
           </span>
         </div>
 
@@ -236,52 +226,7 @@ export const MapScreen: React.FC = () => {
               strokeLinecap="round"
             />
 
-            {(filter === 'all' || filter === 'hazards') && currentScenario.hazards.map(h => {
-              // Organic 8-vertex polygon for flood / hazard zone
-              const polyPoints = [0, 1, 2, 3, 4, 5, 6, 7].map(i => {
-                const angle = (i / 8) * 2 * Math.PI;
-                const r = h.coords.radius * (1 + 0.16 * Math.sin(i * 2.3 + (h.id === 'hz-1' ? 1 : 2)));
-                const px = (h.coords.x + r * Math.cos(angle)).toFixed(1);
-                const py = (h.coords.y + r * Math.sin(angle)).toFixed(1);
-                return `${px},${py}`;
-              }).join(' ');
-
-              const depthText = h.waterDepthMeters != null
-                ? `${h.waterDepthMeters}m depth`
-                : (h.ipuValue ? `IPU ${h.ipuValue}` : 'Hazard');
-
-              return (
-                <g key={h.id}>
-                  <polygon
-                    points={polyPoints}
-                    fill={h.severity === 'danger' ? 'url(#dangerFlood)' : 'url(#advisoryFlood)'}
-                    stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
-                    strokeWidth="1.2"
-                  />
-
-                  <rect
-                    x={h.coords.x - 14}
-                    y={h.coords.y - 3}
-                    width="28"
-                    height="5.4"
-                    rx="2"
-                    fill="var(--bg-surface)"
-                    stroke={h.severity === 'danger' ? 'var(--danger-badge)' : 'var(--advisory-badge)'}
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x={h.coords.x}
-                    y={h.coords.y + 0.8}
-                    textAnchor="middle"
-                    fill={h.severity === 'danger' ? 'var(--danger-text)' : 'var(--advisory-text)'}
-                    fontSize="2.4"
-                    fontWeight="800"
-                  >
-                    ⚠️ {depthText}
-                  </text>
-                </g>
-              );
-            })}
+            {/* Hazard layer removed from SVG map */}
 
             {selectedShelter && (
               <g>
