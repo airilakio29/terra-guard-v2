@@ -13,7 +13,7 @@ import {
   type UserCredential,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, firebaseConfig } from '../firebase';
+import { auth, db } from '../firebase';
 
 // ─── User Profile (matches Firestore `users/{uid}` document) ─────────────────
 
@@ -289,36 +289,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async (): Promise<UserCredential | void> => {
-    // Check if the current deployment domain (e.g. *.vercel.app) is in Firebase's authorizedDomains.
-    // If not yet added in Firebase Console, /__/auth/handler shows "The requested action is invalid."
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      let isDomainAuthorized =
-        host === 'localhost' ||
-        host.endsWith('.firebaseapp.com') ||
-        host.endsWith('.web.app');
-
-      if (!isDomainAuthorized) {
-        try {
-          const res = await fetch(
-            `https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key=${firebaseConfig.apiKey}`
-          );
-          if (res.ok) {
-            const cfg = (await res.json()) as { authorizedDomains?: string[] };
-            isDomainAuthorized = Boolean(cfg.authorizedDomains?.includes(host));
-          }
-        } catch {
-          isDomainAuthorized = false;
-        }
-      }
-
-      if (!isDomainAuthorized) {
-        const chooserErr = new Error('Use in-app Google Account chooser for unauthorized preview domain') as Error & {
-          code?: string;
-        };
-        chooserErr.code = 'auth/use-google-chooser';
-        throw chooserErr;
-      }
+    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+      // Firebase authorizes 'localhost' by default, but not '127.0.0.1'.
+      // Redirect seamlessly to localhost so Google OAuth succeeds.
+      const targetUrl = new URL(window.location.href);
+      targetUrl.hostname = 'localhost';
+      window.location.replace(targetUrl.href);
+      return;
     }
 
     const provider = new GoogleAuthProvider();
