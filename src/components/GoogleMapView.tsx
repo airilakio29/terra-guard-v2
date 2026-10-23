@@ -37,7 +37,7 @@ const getVar = (name: string, fallback = '') => {
 const pill = (text: string, bg: string, fg: string, border = 'var(--border-subtle)') => {
   const el = document.createElement('div');
   el.textContent = text;
-  el.style.cssText = `background:${bg};color:${fg};border:1px solid ${border};border-radius:999px;padding:3px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:var(--shadow-sm);`;
+  el.style.cssText = `background:${bg};color:${fg};border:1px solid ${border};border-radius:var(--radius-xs);padding:3px 9px;font:700 11px system-ui,sans-serif;white-space:nowrap;box-shadow:var(--shadow-sm);`;
   return el;
 };
 
@@ -224,12 +224,12 @@ export const GoogleMapView: React.FC<Props> = ({
         <div style={{
           position: 'absolute', top: 10, left: 10, zIndex: 5, display: 'flex', gap: 8, flexWrap: 'wrap'
         }}>
-          <div style={{ display: 'flex', borderRadius: 'var(--radius-sm)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', borderRadius: 'var(--radius-xs)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
             {(['roadmap', 'terrain', 'hybrid'] as MapKind[]).map(k => (
               <button key={k} style={btn(mapKind === k)} onClick={() => setMapKind(k)}>{L[k]}</button>
             ))}
           </div>
-          <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-subtle)' }}>
+          <div style={{ borderRadius: 'var(--radius-xs)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-subtle)' }}>
             <button style={btn(traffic)} onClick={() => setTraffic(t => !t)}>🚦 {L.traffic}</button>
           </div>
         </div>

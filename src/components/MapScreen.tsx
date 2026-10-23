@@ -155,15 +155,15 @@ export const MapScreen: React.FC = () => {
         {/* Floating Legend */}
         <div className="map-floating-legend">
           <span style={{ color: 'var(--map-user-pin)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--map-user-pin)', display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-xs)', background: 'var(--map-user-pin)', display: 'inline-block' }} />
             {t.youAreHere}
           </span>
           <span style={{ color: 'var(--map-shelter-pin)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--map-shelter-pin)', display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-xs)', background: 'var(--map-shelter-pin)', display: 'inline-block' }} />
             Shelter
           </span>
           <span style={{ color: 'var(--danger-accent)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--danger-accent)', display: 'inline-block' }} />
+            <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-xs)', background: 'var(--danger-accent)', display: 'inline-block' }} />
             Hazard
           </span>
         </div>
@@ -416,7 +416,7 @@ export const MapScreen: React.FC = () => {
             fontSize: 10.5,
             fontWeight: 700,
             padding: '4px 9px',
-            borderRadius: 6,
+            borderRadius: 'var(--radius-xs)',
             boxShadow: 'var(--shadow-sm)',
             border: '1px solid var(--border-subtle)',
             display: 'flex',
