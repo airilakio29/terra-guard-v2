@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "check:colors": "node scripts/check-colors.cjs",
+    "verify": "node scripts/check-colors.cjs && tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
